@@ -420,7 +420,7 @@ function startServer() {
     } catch (err) {
       console.error('[Pylox Panel] Extension load failed:', err.message);
     }
-    const PORT = process.env.APP_PORT || 6000;
+    const PORT = process.env.APP_PORT || 7956;
     server.listen(PORT, () => {
       console.log(`[Pylox Panel] Running on http://localhost:${PORT}`);
       console.log(`[Pylox Panel] WebSocket on ws://localhost:${PORT}/console`);
