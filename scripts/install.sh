@@ -616,6 +616,7 @@ prepare_source() {
     return
   fi
 
+  SRC_DIR="$TMP_DIR/source"
   mkdir -p "$SRC_DIR"
   local archive="$TMP_DIR/source.tar.gz"
   local url="https://api.github.com/repos/${REPO_SLUG}/tarball/${REF}"
