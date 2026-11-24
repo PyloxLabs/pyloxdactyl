@@ -731,6 +731,21 @@ restart_panel() {
   fi
 }
 
+panel_is_active() {
+  if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
+    systemctl is-active --quiet "$SERVICE_NAME" 2>/dev/null
+    return
+  fi
+  curl -fsS "http://127.0.0.1:$(panel_port)/auth/login" >/dev/null 2>&1
+}
+
+stop_panel() {
+  # Without systemd we could stop the panel, but not reliably start it again
+  # afterwards. The caller asks the user to do it manually in that case.
+  command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]] || return 1
+  systemctl stop "$SERVICE_NAME" >/dev/null 2>&1
+}
+
 install_node_deps() {
   if [[ -f "$INSTALL_DIR/package-lock.json" ]]; then
     (cd "$INSTALL_DIR" && npm ci --omit=dev --no-audit --no-fund)
@@ -1153,6 +1168,25 @@ install_legacy_eggs() {
 
   step "Importing from Pterodactyl / Pelican / PyloxLabs repositories"
 
+  # sql.js keeps the whole SQLite database in memory and rewrites the file every
+  # 5 seconds. Importing from a second process while the panel is running makes
+  # the new rows invisible in the UI and lets the panel overwrite them on its
+  # next save. Stop the panel for the duration of a SQLite import.
+  (
+    local stopped_panel=0
+    trap 'if [[ ${stopped_panel} -eq 1 ]]; then restart_panel || true; fi' EXIT
+
+    local db_driver
+    db_driver="$(env_value DB_DRIVER "$INSTALL_DIR/.env" || true)"
+    if [[ "${db_driver:-sqlite}" != "mysql" ]] && panel_is_active; then
+      if stop_panel; then
+        stopped_panel=1
+        ok "Panel stopped for the database import"
+      else
+        die "Stop the panel before importing legacy eggs; SQLite changes would be overwritten. Then run this again."
+      fi
+    fi
+
   cat > "$TMP_DIR/import-legacy-eggs.js" <<'NODE'
 const crypto = require('crypto');
 const APP_DIR = process.env.PYLOXDACTYL_INSTALL_DIR || process.cwd();
@@ -1435,11 +1469,18 @@ async function fetchEgg(spec) {
 });
 NODE
 
-  if (cd "$INSTALL_DIR" && PYLOXDACTYL_INSTALL_DIR="$INSTALL_DIR" node "$TMP_DIR/import-legacy-eggs.js"); then
-    ok "Legacy egg import finished."
-  else
-    warn "Some eggs failed to import; see the messages above."
-  fi
+    if (cd "$INSTALL_DIR" && PYLOXDACTYL_INSTALL_DIR="$INSTALL_DIR" node "$TMP_DIR/import-legacy-eggs.js"); then
+      ok "Legacy egg import finished."
+    else
+      warn "Some eggs failed to import; see the messages above."
+    fi
+
+    if [[ $stopped_panel -eq 1 ]]; then
+      restart_panel
+      stopped_panel=0
+      health_check "$(panel_port)"
+    fi
+  )
 }
 
 # ── 4. Uninstall ─────────────────────────────────────────────────────────────
