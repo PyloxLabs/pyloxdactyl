@@ -71,7 +71,7 @@ Source options:
 
 Install options:
   --db sqlite|mysql     Database driver (default: sqlite)
-  --port PORT           Panel HTTP port (default: 6000)
+  --port PORT           Panel HTTP port (default: 7956)
   --url URL             Public application URL (default: http://localhost:PORT)
   --install-dir DIR     Install directory (default: /var/www/pyloxdactyl)
   --data-dir DIR        Runtime data directory (default: /var/lib/pyloxdactyl)
@@ -95,7 +95,7 @@ INSTALL_DIR="${INSTALL_DIR:-/var/www/pyloxdactyl}"
 DATA_DIR="${DATA_DIR:-/var/lib/pyloxdactyl}"
 SERVICE_NAME="${SERVICE_NAME:-pyloxdactyl}"
 SERVICE_USER="${SERVICE_USER:-pyloxdactyl}"
-APP_PORT="${APP_PORT:-6000}"
+APP_PORT="${APP_PORT:-7956}"
 APP_URL="${APP_URL:-}"
 DB_DRIVER="${DB_DRIVER:-sqlite}"
 DB_NAME="${DB_NAME:-pyloxdactyl}"
