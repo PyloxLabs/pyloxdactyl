@@ -1,0 +1,165 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.dashboard.title') %></h1><p><%= t('admin.dashboard.subtitle') %></p></div>
+    <%- include('_tabs') %>
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px"><%= t('admin.dashboard.systemInfo') %></h3>
+      <div style="font-size:13px;color:var(--text-muted)"><%= t('admin.dashboard.runningVersion', { version: panelVersion }) %></div>
+    </div>
+    <div class="admin-stats-grid">
+      <div class="card admin-stat-card">
+        <div class="admin-stat-icon" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);color:var(--accent)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="admin-stat-text">
+          <div class="admin-stat-value"><%= totalUsers %></div>
+          <div class="admin-stat-label"><%= t('admin.tabs.users') %></div>
+        </div>
+      </div>
+      <div class="card admin-stat-card">
+        <div class="admin-stat-icon" style="background:rgba(34,197,94,0.12);color:#22c55e">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><circle cx="6" cy="6" r="1"/><circle cx="6" cy="18" r="1"/></svg>
+        </div>
+        <div class="admin-stat-text">
+          <div class="admin-stat-value"><%= totalServers %></div>
+          <div class="admin-stat-label"><%= t('common.servers') %></div>
+        </div>
+      </div>
+      <div class="card admin-stat-card">
+        <div class="admin-stat-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg>
+        </div>
+        <div class="admin-stat-text">
+          <div class="admin-stat-value"><%= totalNodes %></div>
+          <div class="admin-stat-label"><%= t('admin.tabs.nodes') %></div>
+        </div>
+      </div>
+      <div class="card admin-stat-card">
+        <div class="admin-stat-icon" style="background:rgba(var(--accent2-r),var(--accent2-g),var(--accent2-b),0.12);color:var(--accent2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="admin-stat-text">
+          <div class="admin-stat-value"><%= totalLocations %></div>
+          <div class="admin-stat-label"><%= t('admin.tabs.locations') %></div>
+        </div>
+      </div>
+      <div class="card admin-stat-card">
+        <div class="admin-stat-icon" style="background:rgba(168,85,247,0.12);color:#a855f7">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <div class="admin-stat-text">
+          <div class="admin-stat-value"><%= totalEggs %></div>
+          <div class="admin-stat-label"><%= t('admin.tabs.eggs') %></div>
+        </div>
+      </div>
+      <div class="card admin-stat-card">
+        <div class="admin-stat-icon" style="background:rgba(14,165,233,0.12);color:#0ea5e9">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3a4 4 0 0 1 4 4v6a2 2 0 0 0 4 0V9a2 2 0 0 1 4 0v5a8 8 0 0 1-16 0V7a4 4 0 0 1 4-4z"/></svg>
+        </div>
+        <div class="admin-stat-text">
+          <div class="admin-stat-value"><%= totalNests %></div>
+          <div class="admin-stat-label"><%= t('admin.tabs.nests') %></div>
+        </div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top:20px">
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px"><%= t('common.allocations') %></h3>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px"><%= t('admin.dashboard.allocationsUsed', { used: usedAllocations, total: totalAllocations }) %></div>
+        <div style="height:10px;background:var(--surface-hover);border-radius:99px;overflow:hidden">
+          <% var pct = totalAllocations > 0 ? Math.round(usedAllocations / totalAllocations * 100) : 0; %>
+          <div style="height:100%;width:<%= pct %>%;background:var(--accent);border-radius:99px"></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px"><%= t('admin.dashboard.allocatedResources') %></h3>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px"><%= t('admin.dashboard.allocatedResourcesLine', { memory: totalMemory, disk: totalDisk }) %></div>
+      </div>
+    </div>
+    <div class="admin-chart-grid" style="margin-top:20px">
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px"><%= t('admin.dashboard.recentUsers') %></h3>
+        <% recentUsers.forEach(u => { %>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;position:relative;overflow:hidden"><%= u.username.charAt(0).toUpperCase() %><img src="<%= gravatar(u.email, 56) %>" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;display:block" onerror="this.remove()"></div>
+              <span style="font-size:13px"><%= u.username %></span>
+            </div>
+            <span style="font-size:11px;color:var(--text-muted)"><%= new Date(u.created_at).toLocaleDateString() %></span>
+          </div>
+        <% }) %>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px"><%= t('admin.dashboard.recentServers') %></h3>
+        <% if (recentServers.length === 0) { %>
+          <div class="recent-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01"/><path d="M6 17h.01"/></svg>
+            <p><%= t('admin.dashboard.noRecentServers') %></p>
+          </div>
+        <% } else { %>
+          <% recentServers.forEach(s => { %>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)">
+              <div>
+                <div style="font-size:13px;font-weight:600"><%= s.name %></div>
+                <div style="font-size:11px;color:var(--text-muted)"><%= s.username || t('admin.dashboard.unknown') %> &middot; <%= s.node_name || t('admin.dashboard.noNode') %></div>
+              </div>
+              <span class="badge badge-<%= s.status === 'running' ? 'green' : s.status === 'starting' ? 'yellow' : 'red' %>"><%= s.status %></span>
+            </div>
+          <% }) %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+/* Six equal, fluid columns: always one row, sized by the available screen width. */
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: clamp(6px, 1vw, 14px);
+  margin-top: 20px;
+}
+.admin-stats-grid > .card {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 0.8vw, 14px);
+  min-width: 0;
+  padding: clamp(10px, 1.4vw, 24px);
+}
+.admin-stats-grid .admin-stat-icon {
+  flex: 0 0 auto;
+  width: clamp(24px, 3vw, 40px);
+  height: clamp(24px, 3vw, 40px);
+  border-radius: clamp(6px, 0.8vw, 10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-stats-grid .admin-stat-icon svg {
+  width: clamp(12px, 1.4vw, 18px);
+  height: clamp(12px, 1.4vw, 18px);
+}
+.admin-stats-grid .admin-stat-text { min-width: 0; }
+.admin-stats-grid .admin-stat-value {
+  font-size: clamp(14px, 1.7vw, 22px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.admin-stats-grid .admin-stat-label {
+  font-size: clamp(9px, 0.95vw, 12px);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 560px) {
+  .admin-stats-grid > .card { padding: 8px 6px; justify-content: center; }
+  .admin-stats-grid .admin-stat-icon { display: none; }
+  .admin-stats-grid .admin-stat-label { font-size: 8px; }
+}
+.admin-chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .admin-chart-grid { grid-template-columns: 1fr; } }
+</style>
+</body></html>

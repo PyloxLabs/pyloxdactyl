@@ -1,0 +1,217 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('common.settings') %></h1><p><%= t('account.settings.subtitle') %></p></div>
+
+    <div class="card gel-in" style="margin-bottom:24px;--i:0">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:4px"><%= t('account.settings.emailTitle') %></h3>
+      <p class="settings-section-desc"><%= t('account.settings.emailDesc') %></p>
+      <form id="settings-email-form">
+        <div class="form-group">
+          <label for="set-email"><%= t('account.settings.newEmail') %></label>
+          <input type="email" id="set-email" name="email" placeholder="<%= user.email %>" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="set-email-password"><%= t('account.settings.currentPassword') %></label>
+          <input type="password" id="set-email-password" name="password" placeholder="<%= t('common.passwordPlaceholder') %>" required autocomplete="current-password">
+        </div>
+        <div class="settings-row">
+          <button type="submit" class="btn btn-primary"><%= t('account.settings.updateEmail') %></button>
+          <span class="settings-msg" id="email-msg"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="card gel-in" style="margin-bottom:24px;--i:1">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:4px"><%= t('account.language.title') %></h3>
+      <p class="settings-section-desc"><%= t('account.language.desc') %></p>
+      <form method="POST" action="/account/language">
+        <div class="form-group">
+          <label for="set-language"><%= t('account.language.title') %></label>
+          <select id="set-language" name="language">
+            <% if (typeof i18nLangs !== 'undefined' && Array.isArray(i18nLangs)) { %>
+              <% i18nLangs.forEach(function(lang){ %>
+                <% const names = (typeof i18nNames !== 'undefined') ? i18nNames : {}; %>
+                <option value="<%= lang %>" <%= (user && user.language === lang) ? 'selected' : '' %>><%= names[lang] || lang %></option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+        <div class="settings-row">
+          <button type="submit" class="btn btn-primary"><%= t('common.save') %></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card gel-in" style="margin-bottom:24px;--i:2">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:4px"><%= t('account.settings.passwordTitle') %></h3>
+      <p class="settings-section-desc"><%= t('account.settings.passwordDesc') %></p>
+      <form id="settings-password-form">
+        <div class="form-group">
+          <label for="set-current-password"><%= t('account.settings.currentPassword') %></label>
+          <input type="password" id="set-current-password" name="current_password" placeholder="<%= t('common.passwordPlaceholder') %>" required autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label for="set-new-password"><%= t('account.settings.newPassword') %></label>
+          <input type="password" id="set-new-password" name="new_password" placeholder="<%= t('common.passwordPlaceholder') %>" required autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label for="set-confirm-password"><%= t('account.settings.confirmNewPassword') %></label>
+          <input type="password" id="set-confirm-password" name="confirm_password" placeholder="<%= t('common.passwordPlaceholder') %>" required autocomplete="new-password">
+        </div>
+        <div class="settings-row">
+          <button type="submit" class="btn btn-primary"><%= t('account.settings.updatePassword') %></button>
+          <span class="settings-msg" id="password-msg"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="card gel-in" style="--i:3">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:4px"><%= t('account.settings.mfaTitle') %></h3>
+      <p class="settings-section-desc"><%= t('account.settings.mfaDesc') %></p>
+
+      <div class="mfa-status" id="mfa-enabled" <%= user.totp_enabled ? '' : 'hidden' %>>
+        <div class="mfa-status-line"><span class="mfa-dot"></span><%- t('account.settings.mfaEnabledLine') %></div>
+        <form id="mfa-disable-form" class="mfa-disable-row">
+          <input type="password" id="mfa-disable-password" name="password" placeholder="<%= t('account.settings.confirmPasswordPlaceholder') %>" required autocomplete="current-password">
+          <button type="submit" class="btn btn-danger"><%= t('account.settings.disable') %></button>
+        </form>
+        <span class="settings-msg" id="mfa-msg"></span>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="mfa-start" <%= user.totp_enabled ? 'hidden' : '' %>><%= t('account.settings.enable2fa') %></button>
+
+      <div class="mfa-setup" id="mfa-setup" hidden>
+        <p class="settings-section-desc"><%= t('account.settings.mfaSetupDesc') %></p>
+        <img class="mfa-qr" id="mfa-qr" alt="<%= t('account.settings.mfaQrAlt') %>">
+        <div class="mfa-secret-label"><%= t('account.settings.mfaManualKey') %></div>
+        <div class="mfa-secret" id="mfa-secret"></div>
+        <div class="form-group">
+          <label for="mfa-code"><%= t('account.settings.codeLabel') %></label>
+          <input type="text" id="mfa-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="<%= t('common.otpPlaceholder') %>" autocomplete="one-time-code" required>
+        </div>
+        <div class="settings-row">
+          <button type="button" class="btn btn-primary" id="mfa-confirm"><%- t('account.settings.confirmEnable') %></button>
+          <button type="button" class="btn btn-ghost" id="mfa-cancel"><%= t('common.cancel') %></button>
+          <span class="settings-msg" id="mfa-setup-msg"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const post = async (url, data) => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      let body = {};
+      try { body = await res.json(); } catch (e) {}
+      if (!res.ok) throw new Error(body.error || window.t('account.settings.requestFailed'));
+      return body;
+  };
+
+  const setMsg = (el, text, ok) => {
+    el.textContent = text || '';
+    el.className = 'settings-msg' + (text ? (ok ? ' settings-msg-ok' : ' settings-msg-err') : '');
+  };
+
+  const emailForm = document.getElementById('settings-email-form');
+  const emailMsg = document.getElementById('email-msg');
+  emailForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setMsg(emailMsg, window.t('account.settings.saving'), true);
+    try {
+      const data = await post('/account/email', {
+        email: emailForm.email.value,
+        password: emailForm.password.value
+      });
+      setMsg(emailMsg, window.t('account.settings.emailUpdated'), true);
+      emailForm.reset();
+      emailForm.email.placeholder = data.email;
+    } catch (err) {
+      setMsg(emailMsg, err.message, false);
+    }
+  });
+
+  const passForm = document.getElementById('settings-password-form');
+  const passMsg = document.getElementById('password-msg');
+  passForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setMsg(passMsg, window.t('account.settings.saving'), true);
+    try {
+      await post('/account/password', {
+        current_password: passForm.current_password.value,
+        new_password: passForm.new_password.value,
+        confirm_password: passForm.confirm_password.value
+      });
+      setMsg(passMsg, window.t('account.settings.passwordUpdated'), true);
+      passForm.reset();
+    } catch (err) {
+      setMsg(passMsg, err.message, false);
+    }
+  });
+
+  const mfaStart = document.getElementById('mfa-start');
+  const mfaSetup = document.getElementById('mfa-setup');
+  const mfaEnabled = document.getElementById('mfa-enabled');
+  const mfaSetupMsg = document.getElementById('mfa-setup-msg');
+  const mfaMsg = document.getElementById('mfa-msg');
+  const mfaQr = document.getElementById('mfa-qr');
+  const mfaSecret = document.getElementById('mfa-secret');
+  const mfaCode = document.getElementById('mfa-code');
+
+  mfaStart.addEventListener('click', async () => {
+    mfaStart.disabled = true;
+    setMsg(mfaSetupMsg, window.t('account.settings.generatingKey'), true);
+    try {
+      const data = await post('/account/2fa/setup', {});
+      mfaQr.src = data.qr;
+      mfaSecret.textContent = data.secret.replace(/(.{4})/g, '$1 ').trim();
+      mfaCode.value = '';
+      setMsg(mfaSetupMsg, '');
+      mfaSetup.hidden = false;
+    } catch (err) {
+      setMsg(mfaSetupMsg, err.message, false);
+    } finally {
+      mfaStart.disabled = false;
+    }
+  });
+
+  document.getElementById('mfa-cancel').addEventListener('click', () => {
+    mfaSetup.hidden = true;
+    setMsg(mfaSetupMsg, '');
+  });
+
+  document.getElementById('mfa-confirm').addEventListener('click', async () => {
+    try {
+      await post('/account/2fa/enable', { code: mfaCode.value });
+      mfaSetup.hidden = true;
+      mfaStart.hidden = true;
+      mfaEnabled.hidden = false;
+      setMsg(mfaMsg, window.t('account.settings.mfaEnabledMsg'), true);
+    } catch (err) {
+      setMsg(mfaSetupMsg, err.message, false);
+    }
+  });
+
+  const mfaDisableForm = document.getElementById('mfa-disable-form');
+  mfaDisableForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try {
+      await post('/account/2fa/disable', { password: mfaDisableForm.password.value });
+      mfaEnabled.hidden = true;
+      mfaStart.hidden = false;
+      mfaSetup.hidden = true;
+      mfaDisableForm.reset();
+      setMsg(mfaMsg, window.t('account.settings.mfaDisabledMsg'), true);
+    } catch (err) {
+      setMsg(mfaMsg, err.message, false);
+    }
+  });
+})();
+</script>
+</body></html>

@@ -1,0 +1,50 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.allocations.title') %></h1><p><%= t('admin.allocations.subtitle') %></p></div>
+    <%- include('_tabs') %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 16px">
+      <h3 style="font-size:16px"><%= t('admin.allocations.countTitle', { count: allocations.length }) %></h3>
+      <button onclick="var o=document.getElementById('create-alloc-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); }); }" class="btn btn-primary btn-sm"><%= t('admin.allocations.createTitle') %></button>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th><%= t('common.id') %></th><th><%= t('common.node') %></th><th><%= t('common.ip') %></th><th><%= t('common.port') %></th><th><%= t('common.alias') %></th><th><%= t('common.assigned') %></th><th><%= t('common.actions') %></th></tr></thead>
+        <tbody>
+          <% allocations.forEach(a => { %>
+            <tr>
+              <td><%= a.id %></td>
+              <td><%= a.node_name || t('common.na') %></td>
+              <td><%= a.ip %></td>
+              <td><%= a.port %></td>
+              <td><%= a.ip_alias || t('common.dash') %></td>
+              <td><% if (a.server_id) { %><span class="badge badge-green"><%= t('common.assigned') %></span><% } else { %><span class="badge badge-gray"><%= t('common.free') %></span><% } %></td>
+              <td>
+                <% if (!a.server_id) { %>
+                  <form method="POST" action="/admin/allocations/<%= a.id %>/delete" data-confirm="<%= t('admin.allocations.deleteConfirm') %>"><button class="btn btn-danger btn-sm"><%= t('common.delete') %></button></form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="create-alloc-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.allocations.createTitle') %></h3>
+    <form method="POST" action="/admin/allocations/create">
+      <div class="form-group"><label><%= t('common.node') %></label><select name="node_id"><% nodes.forEach(n => { %><option value="<%= n.id %>"><%= n.name %></option><% }) %></select></div>
+      <div class="form-group"><label><%= t('common.ipAddress') %></label><input type="text" name="ip" placeholder="<%= t('common.ipPlaceholder') %>" required></div>
+      <div class="form-group"><label><%= t('common.portsComma') %></label><input type="text" name="ports" placeholder="<%= t('common.portsPlaceholder') %>" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body></html>

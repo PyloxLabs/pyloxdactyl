@@ -1,0 +1,62 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.schedules') %></span>
+    </div>
+    <%- include('_tabs', { active: 'schedules' }) %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px"><%= t('server.schedules.title') %></h3>
+      <button onclick="var o=document.getElementById('create-sched-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('server.schedules.newSchedule') %></button>
+    </div>
+    <% if (tasks.length === 0) { %>
+      <div class="empty"><h3><%= t('server.schedules.emptyTitle') %></h3><p><%= t('server.schedules.emptyText') %></p></div>
+    <% } else { %>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <% const tr = t; %>
+        <% tasks.forEach(t => { %>
+          <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px">
+            <div>
+              <span class="badge badge-purple" style="margin-right:8px"><%= t.action %></span>
+              <span style="font-size:13px;color:var(--text-muted)"><code style="background:var(--surface);padding:2px 6px;border-radius:4px"><%= tr('server.schedules.cronPrefix', { cron: t.cron }) %></code></span>
+            </div>
+            <form method="POST" action="/server/<%= server.id %>/schedules/delete" data-confirm="<%= tr('server.schedules.deleteConfirm') %>">
+              <input type="hidden" name="taskId" value="<%= t.id %>">
+              <button class="btn btn-danger btn-sm"><%= tr('common.delete') %></button>
+            </form>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+<div class="modal-overlay" id="create-sched-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.schedules.createTitle') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/schedules/create">
+      <div class="form-group">
+        <label><%= t('server.schedules.actionLabel') %></label>
+        <select name="action"><option value="start"><%= t('server.schedules.actionStart') %></option><option value="stop"><%= t('server.schedules.actionStop') %></option><option value="restart"><%= t('server.schedules.actionRestart') %></option><option value="backup"><%= t('server.schedules.actionBackup') %></option><option value="command"><%= t('server.schedules.actionRunCommand') %></option></select>
+      </div>
+      <div class="form-group">
+        <label><%= t('server.schedules.cronExpressionLabel') %></label>
+        <input type="text" name="cron" placeholder="<%= t('server.schedules.cronPlaceholder') %>" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</body></html>
+
+

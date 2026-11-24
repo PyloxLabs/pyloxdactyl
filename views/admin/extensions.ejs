@@ -1,0 +1,171 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.extensions.title') %></h1><p><%= t('admin.extensions.subtitle') %></p></div>
+    <%- include('_tabs') %>
+
+    <% if (notice) { %><div class="alert alert-success" style="margin-bottom:20px"><%= notice %></div><% } %>
+    <% if (errorMsg) { %><div class="alert alert-error" style="margin-bottom:20px"><%= errorMsg %></div><% } %>
+
+    <div class="ext-upload">
+      <div class="ext-upload-info">
+        <div class="ext-upload-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div>
+          <h3><%= t('admin.extensions.uploadTitle') %></h3>
+          <p><%= t('admin.extensions.uploadDesc') %></p>
+        </div>
+      </div>
+      <form method="POST" action="/admin/extensions/upload" enctype="multipart/form-data" class="ext-upload-form">
+        <input type="file" name="extension" accept=".zip,application/zip" required id="ext-file-input" hidden>
+        <button type="button" class="btn btn-primary btn-sm" id="ext-upload-btn"><%= t('admin.extensions.uploadButton') %></button>
+      </form>
+    </div>
+
+    <% if (extensionsList.length === 0) { %>
+      <div class="empty" style="margin-top:40px">
+        <h3><%= t('admin.extensions.emptyTitle') %></h3>
+        <p><%= t('admin.extensions.emptyDesc') %></p>
+      </div>
+    <% } else { %>
+      <div class="ext-grid">
+        <% extensionsList.forEach(function (ext) { %>
+          <div class="ext-card <%= ext.missing ? 'ext-card-missing' : '' %>">
+            <div class="ext-card-head">
+              <div class="ext-card-icon">
+                <% if (ext.icon) { %>
+                  <img src="/extensions/<%= ext.id %>/<%= ext.icon %>" alt="" onerror="this.replaceWith(document.createTextNode('\u{1F9E9}'))">
+                <% } else { %>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>
+                <% } %>
+              </div>
+              <div class="ext-card-title">
+                <div class="ext-card-name"><%= ext.name %></div>
+                <div class="ext-card-meta">
+                  v<%= ext.version %><% if (ext.author) { %> &middot; <%= ext.author %><% } %>
+                </div>
+              </div>
+              <% if (ext.missing) { %>
+                <span class="badge badge-red"><%= t('admin.extensions.statusMissing') %></span>
+              <% } else if (ext.enabled) { %>
+                <span class="badge badge-green"><%= t('admin.extensions.statusEnabled') %></span>
+              <% } else { %>
+                <span class="badge badge-gray"><%= t('admin.extensions.statusDisabled') %></span>
+              <% } %>
+            </div>
+
+            <% if (ext.description) { %><p class="ext-card-desc"><%= ext.description %></p><% } %>
+
+            <div class="ext-card-id"><code><%= ext.id %></code></div>
+
+            <% if (ext.error) { %>
+              <div class="ext-card-error"><%= t('admin.extensions.loadError') %> <%= ext.error %></div>
+            <% } %>
+
+            <div class="ext-card-actions">
+              <% if (ext.installed) { %>
+                <a href="/admin/extensions/<%= ext.id %>" class="btn btn-ghost btn-sm"><%= t('admin.extensions.configure') %></a>
+                <form method="POST" action="/admin/extensions/<%= ext.id %>/toggle" style="display:inline">
+                  <button class="btn <%= ext.enabled ? 'btn-ghost' : 'btn-primary' %> btn-sm"><%= ext.enabled ? t('admin.extensions.disable') : t('admin.extensions.enable') %></button>
+                </form>
+                <form method="POST" action="/admin/extensions/<%= ext.id %>/delete" style="display:inline" data-confirm="<%= t('admin.extensions.deleteConfirm') %>">
+                  <button class="btn btn-danger btn-sm"><%= t('admin.extensions.uninstall') %></button>
+                </form>
+              <% } else { %>
+                <form method="POST" action="/admin/extensions/<%= ext.id %>/delete" style="display:inline" data-confirm="<%= t('admin.extensions.deleteConfirm') %>">
+                  <button class="btn btn-danger btn-sm"><%= t('admin.extensions.removeEntry') %></button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<style>
+.ext-upload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 28px;
+}
+.ext-upload-info { display: flex; align-items: center; gap: 14px; }
+.ext-upload-info h3 { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+.ext-upload-info p { font-size: 13px; color: var(--text-muted); }
+.ext-upload-icon {
+  width: 42px; height: 42px; flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.12);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.ext-upload-form { display: flex; align-items: center; gap: 12px; }
+.ext-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 18px;
+}
+.ext-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.25s;
+}
+.ext-card:hover { border-color: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.3); }
+.ext-card-missing { opacity: 0.75; }
+.ext-card-head { display: flex; align-items: flex-start; gap: 12px; }
+.ext-card-icon {
+  width: 44px; height: 44px; flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent);
+  overflow: hidden;
+}
+.ext-card-icon img { width: 100%; height: 100%; object-fit: contain; }
+.ext-card-title { flex: 1; min-width: 0; }
+.ext-card-name { font-size: 15px; font-weight: 600; }
+.ext-card-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.ext-card-desc { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin: 14px 0 0; }
+.ext-card-id { margin-top: 12px; font-size: 11px; color: var(--text-muted); }
+.ext-card-id code { background: var(--bg-secondary); padding: 2px 8px; border-radius: 6px; }
+.ext-card-error {
+  margin-top: 12px; font-size: 12px;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  padding: 8px 12px; border-radius: 8px;
+}
+.ext-card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.ext-card-actions form { margin: 0; }
+@media (max-width: 600px) {
+  .ext-upload { flex-direction: column; align-items: stretch; }
+  .ext-upload-form { flex-direction: column; align-items: stretch; }
+}
+</style>
+<script>
+  (function () {
+    var input = document.getElementById('ext-file-input');
+    var btn = document.getElementById('ext-upload-btn');
+    if (!input || !btn) return;
+    btn.addEventListener('click', function () { input.click(); });
+    input.addEventListener('change', function () {
+      if (input.files.length) input.form.submit();
+    });
+  })();
+</script>
+</body></html>

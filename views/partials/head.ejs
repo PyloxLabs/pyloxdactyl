@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="<%= typeof lang !== 'undefined' ? lang : 'en' %>" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' | ' : '' %><%= siteName %></title>
+  <link rel="icon" type="image/png" href="<%= favicon %>">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem('pylox-theme');
+        document.documentElement.setAttribute('data-theme', saved === 'light' ? 'light' : 'dark');
+      } catch (e) {}
+      window.toggleTheme = function () {
+        var root = document.documentElement;
+        var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+        root.setAttribute('data-theme', next);
+        try { localStorage.setItem('pylox-theme', next); } catch (e) {}
+      };
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .page-wrapper { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }
+    .page-header { margin-bottom: 24px; }
+  </style>
+  <script>
+    window.I18N = <%- typeof i18nDict !== 'undefined' ? JSON.stringify(i18nDict) : '{}' %>;
+    window.lang = '<%= typeof lang !== 'undefined' ? lang : 'en' %>';
+    window.t = function (key, vars) {
+      var s = window.I18N && window.I18N[key] !== undefined ? window.I18N[key] : key;
+      if (vars) {
+        Object.keys(vars).forEach(function (p) {
+          s = s.split('{' + p + '}').join(String(vars[p]));
+        });
+      }
+      return s;
+    };
+
+    window.showToast = function (message) {
+      var container = document.getElementById('toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+      }
+      var toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(function () {
+        toast.classList.add('show');
+      }, 10);
+      setTimeout(function () {
+        toast.classList.remove('show');
+        toast.classList.add('hide');
+        setTimeout(function () {
+          toast.remove();
+        }, 300);
+      }, 2000);
+    };
+
+    window.copyToClipboard = function (text, successMessage) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () {
+          if (successMessage) window.showToast(successMessage);
+        }).catch(function () {
+          fallbackCopy(text, successMessage);
+        });
+      } else {
+        fallbackCopy(text, successMessage);
+      }
+    };
+
+    function fallbackCopy(text, successMessage) {
+      var textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        if (successMessage) window.showToast(successMessage);
+      } catch (e) {
+      }
+      document.body.removeChild(textArea);
+    }
+  </script>
+  <script src="/static/js/loader.js"></script>
+  <script src="/static/js/server-nav.js" defer></script>
+  <script src="/static/js/custom-select.js" defer></script>
+</head>
+<body>
+<%- include('confirm') %>
+<div id="toast-container" class="toast-container"></div>

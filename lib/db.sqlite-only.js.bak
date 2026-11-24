@@ -1,0 +1,419 @@
+const initSqlJs = require('sql.js');
+const path = require('path');
+const fs = require('fs');
+
+const dbDir = path.join(__dirname, '..', 'data');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
+const dbPath = process.env.DB_PATH || path.join(dbDir, 'panel.db');
+
+// sql.js wrapper that mimics better-sqlite3 API
+class DatabaseWrapper {
+  constructor(sqlJsDb) {
+    this.db = sqlJsDb;
+  }
+
+  exec(sql) {
+    this.db.run(sql);
+  }
+
+  prepare(sql) {
+    const db = this.db;
+    return {
+      run(...params) {
+        db.run(sql, params);
+        // Get last insert rowid
+        const result = db.exec('SELECT last_insert_rowid() as id');
+        const lastInsertRowid = result.length > 0 ? result[0].values[0][0] : 0;
+        return { lastInsertRowid, changes: db.getRowsModified() };
+      },
+      get(...params) {
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        if (stmt.step()) {
+          const cols = stmt.getColumnNames();
+          const vals = stmt.get();
+          stmt.free();
+          const row = {};
+          cols.forEach((c, i) => row[c] = vals[i]);
+          return row;
+        }
+        stmt.free();
+        return undefined;
+      },
+      all(...params) {
+        const rows = [];
+        const stmt = db.prepare(sql);
+        stmt.bind(params);
+        while (stmt.step()) {
+          const cols = stmt.getColumnNames();
+          const vals = stmt.get();
+          const row = {};
+          cols.forEach((c, i) => row[c] = vals[i]);
+          rows.push(row);
+        }
+        stmt.free();
+        return rows;
+      }
+    };
+  }
+
+  pragma(p) {
+    try { this.db.run(`PRAGMA ${p}`); } catch {}
+  }
+
+  save() {
+    const data = this.db.export();
+    const buffer = Buffer.from(data);
+    fs.writeFileSync(dbPath, buffer);
+    // sql.js' export() reopens the underlying connection, which resets
+    // connection-level pragmas. Re-enable foreign key enforcement so
+    // ON DELETE CASCADE / SET NULL constraints keep working after a save.
+    this.pragma('foreign_keys = ON');
+  }
+}
+
+let _db = null;
+let _saveInterval = null;
+
+async function initDB() {
+  const SQL = await initSqlJs();
+  let sqlDb;
+  
+  if (fs.existsSync(dbPath)) {
+    const fileBuffer = fs.readFileSync(dbPath);
+    sqlDb = new SQL.Database(fileBuffer);
+  } else {
+    sqlDb = new SQL.Database();
+  }
+
+  const wrapper = new DatabaseWrapper(sqlDb);
+  wrapper.pragma('journal_mode = WAL');
+  wrapper.pragma('foreign_keys = ON');
+
+  // Create tables
+  wrapper.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uuid TEXT UNIQUE NOT NULL,
+      username TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      root_admin INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS api_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      memo TEXT,
+      allowed_ips TEXT DEFAULT '[]',
+      last_used_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS ssh_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      public_key TEXT NOT NULL,
+      fingerprint TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS locations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      short TEXT UNIQUE NOT NULL,
+      long TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS nodes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      location_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      fqdn TEXT NOT NULL,
+      scheme TEXT DEFAULT 'https',
+      memory INTEGER NOT NULL,
+      disk INTEGER NOT NULL,
+      cpu INTEGER NOT NULL,
+      disk_overallocate INTEGER DEFAULT 0,
+      memory_overallocate INTEGER DEFAULT 0,
+      daemon_token TEXT NOT NULL,
+      daemon_listen TEXT DEFAULT '8080',
+      public INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (location_id) REFERENCES locations(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS servers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uuid TEXT UNIQUE NOT NULL,
+      user_id INTEGER NOT NULL,
+      node_id INTEGER NOT NULL,
+      allocation_id INTEGER,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      status TEXT DEFAULT 'offline',
+      install_status TEXT DEFAULT 'installed',
+      install_error TEXT,
+      startup_command TEXT,
+      egg_id INTEGER,
+      image TEXT,
+      memory INTEGER DEFAULT 1024,
+      disk INTEGER DEFAULT 10240,
+      cpu INTEGER DEFAULT 100,
+      io INTEGER DEFAULT 500,
+      databases INTEGER DEFAULT 0,
+      database_limit INTEGER DEFAULT 0,
+      backups_limit INTEGER DEFAULT 3,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+      FOREIGN KEY (allocation_id) REFERENCES allocations(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS allocations (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      node_id INTEGER NOT NULL,
+      ip TEXT NOT NULL,
+      port INTEGER NOT NULL,
+      ip_alias TEXT,
+      server_id INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE,
+      FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE SET NULL,
+      UNIQUE(node_id, port)
+    );
+
+    CREATE TABLE IF NOT EXISTS server_variables (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER NOT NULL,
+      env_var TEXT NOT NULL,
+      value TEXT,
+      FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS database_hosts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      host TEXT NOT NULL,
+      port INTEGER DEFAULT 3306,
+      username TEXT,
+      password TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS databases (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER NOT NULL,
+      database_host_id INTEGER,
+      name TEXT NOT NULL,
+      username TEXT NOT NULL,
+      password TEXT NOT NULL,
+      host TEXT DEFAULT '127.0.0.1',
+      port INTEGER DEFAULT 3306,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
+      FOREIGN KEY (database_host_id) REFERENCES database_hosts(id) ON DELETE SET NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS backups (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      file TEXT,
+      size INTEGER DEFAULT 0,
+      ignored_files TEXT,
+      locked INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS schedule_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      payload TEXT,
+      is_active INTEGER DEFAULT 1,
+      cron TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS subusers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      server_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      permissions TEXT DEFAULT '[]',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (server_id) REFERENCES servers(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS eggs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      docker_image TEXT,
+      startup TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS nests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      uuid TEXT UNIQUE NOT NULL,
+      author_id INTEGER,
+      name TEXT NOT NULL,
+      description TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS egg_variables (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      egg_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      env_var TEXT NOT NULL,
+      default_value TEXT,
+      user_viewable INTEGER DEFAULT 1,
+      user_editable INTEGER DEFAULT 1,
+      rules TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (egg_id) REFERENCES eggs(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS panel_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+  `);
+
+  // Migrations: add columns introduced after the initial schema
+  const eggCols = wrapper.prepare('PRAGMA table_info(eggs)').all();
+  if (!eggCols.some(c => c.name === 'nest_id')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN nest_id INTEGER');
+  }
+  if (!eggCols.some(c => c.name === 'author')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN author TEXT');
+  }
+  if (!eggCols.some(c => c.name === 'features')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN features TEXT');
+  }
+  if (!eggCols.some(c => c.name === 'docker_images')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN docker_images TEXT');
+  }
+  if (!eggCols.some(c => c.name === 'file_denylist')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN file_denylist TEXT');
+  }
+  if (!eggCols.some(c => c.name === 'config')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN config TEXT');
+  }
+  if (!eggCols.some(c => c.name === 'install_script')) {
+    wrapper.exec('ALTER TABLE eggs ADD COLUMN install_script TEXT');
+  }
+  const varCols = wrapper.prepare('PRAGMA table_info(egg_variables)').all();
+  if (!varCols.some(c => c.name === 'field_type')) {
+    wrapper.exec('ALTER TABLE egg_variables ADD COLUMN field_type TEXT');
+  }
+  const serverCols = wrapper.prepare('PRAGMA table_info(servers)').all();
+  if (!serverCols.some(c => c.name === 'swap')) {
+    wrapper.exec('ALTER TABLE servers ADD COLUMN swap INTEGER DEFAULT 0');
+  }
+  if (!serverCols.some(c => c.name === 'install_error')) {
+    wrapper.exec('ALTER TABLE servers ADD COLUMN install_error TEXT');
+  }
+  if (!serverCols.some(c => c.name === 'sftp_password')) {
+    wrapper.exec('ALTER TABLE servers ADD COLUMN sftp_password TEXT');
+  }
+  const backupCols = wrapper.prepare('PRAGMA table_info(backups)').all();
+  if (!backupCols.some(c => c.name === 'ignored_files')) {
+    wrapper.exec('ALTER TABLE backups ADD COLUMN ignored_files TEXT');
+  }
+  if (!backupCols.some(c => c.name === 'locked')) {
+    wrapper.exec('ALTER TABLE backups ADD COLUMN locked INTEGER DEFAULT 0');
+  }
+  const existingDbCols = wrapper.prepare('PRAGMA table_info(databases)').all();
+  if (!existingDbCols.some(c => c.name === 'database_host_id')) {
+    wrapper.exec('ALTER TABLE databases ADD COLUMN database_host_id INTEGER');
+  }
+  const nodeCols = wrapper.prepare('PRAGMA table_info(nodes)').all();
+  if (!nodeCols.some(c => c.name === 'sftp_port')) {
+    wrapper.exec('ALTER TABLE nodes ADD COLUMN sftp_port INTEGER DEFAULT 2022');
+  }
+  const userCols = wrapper.prepare('PRAGMA table_info(users)').all();
+  if (!userCols.some(c => c.name === 'totp_secret')) {
+    wrapper.exec('ALTER TABLE users ADD COLUMN totp_secret TEXT');
+  }
+  if (!userCols.some(c => c.name === 'totp_enabled')) {
+    wrapper.exec('ALTER TABLE users ADD COLUMN totp_enabled INTEGER DEFAULT 0');
+  }
+  if (!userCols.some(c => c.name === 'language')) {
+    wrapper.exec("ALTER TABLE users ADD COLUMN language TEXT DEFAULT 'en'");
+  }
+  if (!userCols.some(c => c.name === 'reset_token')) {
+    wrapper.exec('ALTER TABLE users ADD COLUMN reset_token TEXT');
+  }
+  if (!userCols.some(c => c.name === 'reset_token_expires')) {
+    wrapper.exec('ALTER TABLE users ADD COLUMN reset_token_expires TEXT');
+  }
+
+  wrapper.save();
+  console.log('[DB] Database initialized at', dbPath);
+
+  _db = wrapper;
+
+  // Auto-save every 5 seconds
+  _saveInterval = setInterval(() => {
+    if (_db) _db.save();
+  }, 5000);
+
+  return wrapper;
+}
+
+// Initialize synchronously using top-level (will be awaited)
+let dbReady = false;
+const dbProxy = {
+  _inner: null,
+  exec(sql) { this._inner.exec(sql); },
+  prepare(sql) { return this._inner.prepare(sql); },
+  pragma(p) { this._inner.pragma(p); },
+  save() { this._inner.save(); },
+};
+
+initDB().then(db => {
+  dbProxy._inner = db;
+  dbReady = true;
+}).catch(err => {
+  console.error('[DB] Init failed:', err);
+  process.exit(1);
+});
+
+// Export proxy - queries will block until DB is ready
+module.exports = {
+  exec(sql) { if (dbProxy._inner) dbProxy._inner.exec(sql); },
+  prepare(sql) {
+    if (dbProxy._inner) return dbProxy._inner.prepare(sql);
+    throw new Error('Database not ready');
+  },
+  pragma(p) { if (dbProxy._inner) dbProxy._inner.pragma(p); },
+  save() { if (dbProxy._inner) dbProxy._inner.save(); },
+  getSetting(key, def) {
+    if (!dbProxy._inner) return def;
+    const row = dbProxy._inner.prepare('SELECT value FROM panel_settings WHERE key = ?').get(key);
+    return row ? row.value : def;
+  },
+  setSetting(key, value) {
+    if (!dbProxy._inner) return;
+    const row = dbProxy._inner.prepare('SELECT key FROM panel_settings WHERE key = ?').get(key);
+    if (row) dbProxy._inner.prepare('UPDATE panel_settings SET value = ? WHERE key = ?').run(String(value), key);
+    else dbProxy._inner.prepare('INSERT INTO panel_settings (key, value) VALUES (?, ?)').run(key, String(value));
+  },
+};

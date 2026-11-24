@@ -1,0 +1,211 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.databases.title') %></h1><p><%= t('admin.databases.subtitle') %></p></div>
+    <%- include('_tabs') %>
+
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:16px;font-weight:600"><%= t('admin.databases.hostsTitle', { count: databaseHosts.length }) %></h3>
+        <button onclick="var o=document.getElementById('create-host-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); }); }" class="btn btn-primary btn-sm"><%= t('admin.databases.addHost') %></button>
+      </div>
+      <% if (databaseHosts.length > 0) { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th><%= t('common.name') %></th><th><%= t('common.host') %></th><th><%= t('common.port') %></th><th><%= t('common.username') %></th><th><%= t('common.actions') %></th></tr></thead>
+            <tbody>
+              <% databaseHosts.forEach(h => { %>
+                <tr>
+                  <td><%= h.name %></td>
+                  <td><%= h.host %></td>
+                  <td><%= h.port %></td>
+                  <td><%= h.username || t('common.dash') %></td>
+                  <td>
+                    <div style="display:flex;gap:8px">
+                      <button type="button" class="btn btn-ghost btn-sm edit-host-btn"
+                        data-id="<%= h.id %>" data-name="<%= h.name %>" data-host="<%= h.host %>"
+                        data-port="<%= h.port %>" data-username="<%= h.username || '' %>"
+                       ><%= t('common.edit') %></button>
+                      <form method="POST" action="/admin/database-hosts/<%= h.id %>/delete" data-confirm="<%= t('admin.databases.deleteHostConfirm') %>">
+                        <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty" style="padding:20px"><h3><%= t('admin.databases.emptyHostsTitle') %></h3><p style="font-size:12px"><%= t('admin.databases.emptyHostsText') %></p></div>
+      <% } %>
+    </div>
+
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="font-size:16px;font-weight:600"><%= t('admin.databases.countTitle', { count: databases.length }) %></h3>
+        <button onclick="var o=document.getElementById('create-db-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); }); }" class="btn btn-primary btn-sm"><%= t('common.createDatabase') %></button>
+      </div>
+      <% if (databases.length > 0) { %>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th><%= t('common.id') %></th><th><%= t('admin.databases.serverHeader') %></th><th><%= t('common.owner') %></th><th><%= t('common.databaseName') %></th><th><%= t('common.username') %></th><th><%= t('common.host') %></th><th><%= t('common.actions') %></th></tr></thead>
+            <tbody>
+              <% databases.forEach(d => { %>
+                <tr>
+                  <td><%= d.id %></td>
+                  <td><%= d.server_name || t('admin.databases.unknownServer') %></td>
+                  <td><%= d.owner || t('admin.databases.unknownServer') %></td>
+                  <td><%= d.name %></td>
+                  <td><%= d.username %></td>
+                  <td><%= d.host %>:<%= d.port %></td>
+                  <td>
+                    <div style="display:flex;gap:8px">
+                      <button type="button" class="btn btn-ghost btn-sm edit-db-btn"
+                        data-id="<%= d.id %>" data-name="<%= d.name %>" data-username="<%= d.username %>"
+                        data-host-id="<%= d.database_host_id || '' %>"
+                       ><%= t('common.edit') %></button>
+                      <form method="POST" action="/admin/databases/<%= d.id %>/delete" data-confirm="<%= t('admin.databases.deleteConfirm') %>">
+                        <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty" style="padding:20px"><h3><%= t('admin.databases.emptyTitle') %></h3><p style="font-size:12px"><%= t('admin.databases.emptyText') %></p></div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="create-host-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.databases.addHost') %></h3>
+    <form method="POST" action="/admin/database-hosts/create">
+      <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" placeholder="<%= t('admin.databases.hostNamePlaceholder') %>" required></div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.host') %></label><input type="text" name="host" placeholder="<%= t('admin.databases.hostPlaceholder') %>" required></div>
+        <div class="form-group"><label><%= t('common.port') %></label><input type="number" name="port" value="3306"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.username') %></label><input type="text" name="username"></div>
+        <div class="form-group"><label><%= t('common.password') %></label><input type="text" name="password"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="create-db-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('common.createDatabase') %></h3>
+    <form method="POST" action="/admin/databases/create">
+      <div class="form-group"><label><%= t('admin.databases.serverHeader') %></label>
+        <select name="server_id" required>
+          <% servers.forEach(s => { %><option value="<%= s.id %>"><%= s.name %> (<%= s.owner || t('admin.databases.unknownServer') %>)</option><% }) %>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.databaseName') %></label><input type="text" name="name" required></div>
+        <div class="form-group"><label><%= t('common.username') %></label><input type="text" name="username" required></div>
+      </div>
+      <div class="form-group"><label><%= t('common.password') %></label><input type="text" name="password" required></div>
+      <div class="form-group"><label><%= t('admin.databases.databaseHost') %></label>
+        <select name="database_host_id">
+          <option value=""><%= t('admin.databases.manualHost') %></option>
+          <% databaseHosts.forEach(h => { %><option value="<%= h.id %>"><%= h.name %> (<%= h.host %>:<%= h.port %>)</option><% }) %>
+        </select>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.host') %></label><input type="text" name="host" value="127.0.0.1"></div>
+        <div class="form-group"><label><%= t('common.port') %></label><input type="number" name="port" value="3306"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-host-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.databases.editHostTitle') %></h3>
+    <form method="POST" id="edit-host-form">
+      <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" id="edit-host-name" required></div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.host') %></label><input type="text" name="host" id="edit-host-host" required></div>
+        <div class="form-group"><label><%= t('common.port') %></label><input type="number" name="port" id="edit-host-port"></div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.username') %></label><input type="text" name="username" id="edit-host-username"></div>
+        <div class="form-group"><label><%= t('admin.databases.newPasswordLabel') %></label><input type="text" name="password" placeholder="<%= t('common.passwordPlaceholder') %>"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.saveChanges') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-db-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.databases.editDbTitle') %></h3>
+    <form method="POST" id="edit-db-form">
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.databaseName') %></label><input type="text" name="name" id="edit-db-name" required></div>
+        <div class="form-group"><label><%= t('common.username') %></label><input type="text" name="username" id="edit-db-username" required></div>
+      </div>
+      <div class="form-group"><label><%= t('admin.databases.newPasswordLabel') %></label><input type="text" name="password" placeholder="<%= t('common.passwordPlaceholder') %>"></div>
+      <div class="form-group"><label><%= t('admin.databases.databaseHost') %></label>
+        <select name="database_host_id" id="edit-db-host">
+          <option value=""><%= t('admin.databases.manualHost') %></option>
+          <% databaseHosts.forEach(h => { %><option value="<%= h.id %>"><%= h.name %> (<%= h.host %>:<%= h.port %>)</option><% }) %>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.saveChanges') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.edit-host-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('edit-host-form').action = '/admin/database-hosts/' + btn.dataset.id;
+      document.getElementById('edit-host-name').value = btn.dataset.name;
+      document.getElementById('edit-host-host').value = btn.dataset.host;
+      document.getElementById('edit-host-port').value = btn.dataset.port;
+      document.getElementById('edit-host-username').value = btn.dataset.username;
+      document.getElementById('edit-host-modal').classList.add('active');
+    });
+  });
+  document.querySelectorAll('.edit-db-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.getElementById('edit-db-form').action = '/admin/databases/' + btn.dataset.id;
+      document.getElementById('edit-db-name').value = btn.dataset.name;
+      document.getElementById('edit-db-username').value = btn.dataset.username;
+      document.getElementById('edit-db-host').value = btn.dataset.hostId;
+      document.getElementById('edit-db-modal').classList.add('active');
+    });
+  });
+</script>
+</body></html>
+
+
+

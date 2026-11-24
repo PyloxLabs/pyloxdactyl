@@ -1,0 +1,66 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.databases') %></span>
+    </div>
+    <%- include('_tabs', { active: 'databases' }) %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px"><%= t('server.databases.title', { count: databases.length, limit: server.database_limit }) %></h3>
+      <% if (databases.length < server.database_limit) { %>
+        <button onclick="var o=document.getElementById('create-db-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('common.createDatabase') %></button>
+      <% } %>
+    </div>
+    <% if (databases.length === 0) { %>
+      <div class="empty"><h3><%= t('server.databases.emptyTitle') %></h3><p><%= t('server.databases.emptyText') %></p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th><%= t('common.name') %></th><th><%= t('common.username') %></th><th><%= t('common.host') %></th><th><%= t('common.port') %></th><th><%= t('common.actions') %></th></tr></thead>
+          <tbody>
+            <% databases.forEach(db => { %>
+              <tr>
+                <td><%= db.name %></td>
+                <td><%= db.username %></td>
+                <td><%= db.host %></td>
+                <td><%= db.port %></td>
+                <td>
+                  <form method="POST" action="/server/<%= server.id %>/databases/delete" style="display:inline" data-confirm="<%= t('server.databases.deleteConfirm') %>">
+                    <input type="hidden" name="databaseId" value="<%= db.id %>">
+                    <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+<div class="modal-overlay" id="create-db-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('common.createDatabase') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/databases/create">
+      <div class="form-group">
+        <label><%= t('common.databaseName') %></label>
+        <input type="text" name="name" placeholder="<%= t('server.databases.namePlaceholder') %>" required>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</div>
+</body></html>
+
+

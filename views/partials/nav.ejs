@@ -1,0 +1,318 @@
+﻿<button class="nav-hamburger" onclick="document.querySelector('.mobile-menu').classList.toggle('active');document.querySelector('.mobile-menu-overlay').classList.toggle('active')">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo" aria-label="<%= t('nav.home') %>">
+      <span class="nav-logo-media" data-logo="<%= pageLogo %>">
+        <img src="<%= pageLogo %>" alt="<%= siteName %>" style="object-fit:contain;border-radius:6px">
+      </span>
+    </a>
+    <div class="nav-links">
+      <% if (isLoggedIn && user) { %>
+        <a href="/dashboard" class="<%= currentPath.startsWith('/dashboard') ? 'active' : '' %>">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" color="currentColor" stroke-width="2" stroke="currentColor"><path d="M18.5 3H5.5C5.03534 3 4.80302 3 4.60982 3.03843C3.81644 3.19624 3.19624 3.81644 3.03843 4.60982C3 4.80302 3 5.03534 3 5.5C3 5.96466 3 6.19698 3.03843 6.39018C3.19624 7.18356 3.81644 7.80376 4.60982 7.96157C4.80302 8 5.03534 8 5.5 8H18.5C18.9647 8 19.197 8 19.3902 7.96157C20.1836 7.80376 20.8038 7.18356 20.9616 6.39018C21 6.19698 21 5.96466 21 5.5C21 5.03534 21 4.80302 20.9616 4.60982C20.8038 3.81644 20.1836 3.19624 19.3902 3.03843C19.197 3 18.9647 3 18.5 3Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M18.5 11H5.5C5.03534 11 4.80302 11 4.60982 11.0384C3.81644 11.1962 3.19624 11.8164 3.03843 12.6098C3 12.803 3 13.0353 3 13.5C3 13.9647 3 14.197 3.03843 14.3902C3.19624 15.1836 3.81644 15.8038 4.60982 15.9616C4.80302 16 5.03534 16 5.5 16H18.5C18.9647 16 19.197 16 19.3902 15.9616C20.1836 15.8038 20.8038 15.1836 20.9616 14.3902C21 14.197 21 13.9647 21 13.5C21 13.0353 21 12.803 20.9616 12.6098C20.8038 11.8164 20.1836 11.1962 19.3902 11.0384C19.197 11 18.9647 11 18.5 11Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M12 19V21M5 21H19" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6 13.5H6.01" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M6 5.5H6.01" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M9 13.5H9.01" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M9 5.5H9.01" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          <%= t('common.servers') %>
+        </a>
+        <a href="/api/keys" class="<%= currentPath.startsWith('/api/keys') ? 'active' : '' %>">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          <%= t('common.apiKeys') %>
+        </a>
+        <a href="/account/ssh-keys" class="<%= currentPath.startsWith('/account/ssh-keys') ? 'active' : '' %>">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <%= t('common.sshKeys') %>
+        </a>
+        <a href="/account" class="<%= currentPath === '/account' ? 'active' : '' %>">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <%= t('common.settings') %>
+        </a>
+        <% if (user.root_admin) { %>
+          <a href="/admin" class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <%= t('common.admin') %>
+          </a>
+        <% } %>
+      <% } else { %>
+        <a href="/auth/login" class="<%= currentPath === '/auth/login' ? 'active' : '' %>">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          <%= t('common.login') %>
+        </a>
+        <a href="/auth/register" class="<%= currentPath === '/auth/register' ? 'active' : '' %>">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          <%= t('common.register') %>
+        </a>
+      <% } %>
+    </div>
+    <div class="nav-actions">
+      <% if (isLoggedIn && user) { %>
+        <button type="button" class="nav-avatar-btn" id="nav-avatar-btn" aria-label="<%= t('nav.openUserMenu') %>">
+          <div class="nav-avatar"><%= user.username.charAt(0).toUpperCase() %><img src="<%= gravatar(user.email, 56) %>" alt="" onerror="this.remove()"></div>
+        </button>
+      <% } %>
+    </div>
+  </div>
+</nav>
+<%
+  var topbarPage = t('common.dashboard');
+  if (currentPath.startsWith('/admin')) topbarPage = t('common.admin');
+  else if (currentPath.startsWith('/server')) topbarPage = t('common.servers');
+  else if (currentPath.startsWith('/api/keys')) topbarPage = t('common.apiKeys');
+  else if (currentPath.startsWith('/account/ssh-keys')) topbarPage = t('common.sshKeys');
+  else if (currentPath.startsWith('/account')) topbarPage = t('common.settings');
+  else if (currentPath.startsWith('/auth/login')) topbarPage = t('common.login');
+  else if (currentPath.startsWith('/auth/register')) topbarPage = t('common.register');
+%>
+<%
+  var topbarIsServer = typeof server !== 'undefined' && server && currentPath.startsWith('/server/');
+  var topbarServerStatus = topbarIsServer ? ((typeof status !== 'undefined' && status) ? status : (server.status || 'offline')) : '';
+  var topbarServerTone = 'red';
+  if (topbarServerStatus === 'running') topbarServerTone = 'green';
+  else if (['starting', 'stopping', 'installing', 'pending'].includes(topbarServerStatus)) topbarServerTone = 'yellow';
+%>
+<header class="topbar<%= topbarIsServer ? ' topbar--server' : '' %>">
+  <div class="topbar-inner">
+    <div class="topbar-brand">
+      <span class="topbar-page"><%= topbarPage %></span>
+    </div>
+    <% if (topbarIsServer) { %>
+      <div class="topbar-server" id="topbar-server" title="<%= topbarServerStatus %>">
+        <span class="topbar-server-dot topbar-server-dot--<%= topbarServerTone %>" id="topbar-server-dot"></span>
+        <span class="topbar-server-name"><%= server.name %></span>
+      </div>
+    <% } %>
+  </div>
+</header>
+<% if (isLoggedIn && user) { %>
+<div class="dropside-overlay" id="user-dropside-overlay"></div>
+<aside class="dropside user-dropside" id="user-dropside" role="dialog" aria-modal="true" aria-labelledby="user-dropside-name" aria-hidden="true">
+  <div class="dropside-header">
+    <span class="dropside-title"><%= t('nav.account') %></span>
+  </div>
+  <div class="dropside-profile">
+    <div class="dropside-avatar"><%= user.username.charAt(0).toUpperCase() %><img src="<%= gravatar(user.email, 144) %>" alt="" onerror="this.remove()"></div>
+    <div class="dropside-profile-meta">
+      <div class="dropside-name" id="user-dropside-name"><%= user.username %></div>
+      <div class="dropside-email"><%= user.email %></div>
+    </div>
+  </div>
+  <div class="dropside-body">
+    <div class="dropside-row">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <label class="dropside-row-label" for="user-menu-lang"><%= t('nav.language') %></label>
+      <label class="dropside-select"><select id="user-menu-lang" name="language" class="select-sm select-inline"><% i18nLangs.forEach(function(l){ %><option value="<%= l %>" <%= String(user.language) === l ? 'selected' : '' %>><%= i18nNames[l] || l %></option><% }); %></select></label>
+    </div>
+    <div class="dropside-row">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" stroke="none"/></svg>
+      <span class="dropside-row-label" id="user-dropside-theme-label"><%= t('nav.theme') %></span>
+      <button type="button" class="theme-switch" id="user-dropside-theme" role="switch" aria-checked="true" aria-labelledby="user-dropside-theme-label" title="<%= t('nav.darkMode') %>">
+        <svg class="theme-switch-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="theme-switch-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        <span class="theme-switch-thumb" aria-hidden="true"></span>
+      </button>
+    </div>
+  </div>
+  <div class="dropside-footer">
+    <a href="/auth/logout" class="dropside-logout">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <%= t('common.logout') %>
+    </a>
+  </div>
+</aside>
+<% } %>
+<div class="mobile-menu-overlay" onclick="this.classList.remove('active');document.querySelector('.mobile-menu').classList.remove('active')"></div>
+<div class="mobile-menu">
+  <div class="mobile-menu-header">
+    <span class="nav-logo"><img src="<%= pageLogo %>" alt="<%= siteName %>" style="object-fit:contain;border-radius:6px"> <%= siteName %></span>
+    <div class="mobile-menu-header-actions">
+      <button type="button" class="nav-theme-btn" onclick="toggleTheme()" aria-label="Toggle color theme" title="Toggle color theme">
+        <svg class="theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg class="theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
+      <button class="mobile-menu-close" onclick="document.querySelector('.mobile-menu').classList.remove('active');document.querySelector('.mobile-menu-overlay').classList.remove('active')">&times;</button>
+    </div>
+  </div>
+  <div class="mobile-menu-body">
+    <% if (isLoggedIn && user) { %>
+      <button type="button" class="mobile-menu-btn mobile-account-btn" id="mobile-account-btn">
+        <div class="nav-avatar"><%= user.username.charAt(0).toUpperCase() %><img src="<%= gravatar(user.email, 56) %>" alt="" onerror="this.remove()"></div>
+        <span><%= user.username %></span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="mobile-menu-divider"></div>
+    <% } %>
+    <div class="mobile-nav-links">
+      <% if (isLoggedIn && user) { %>
+        <a href="/dashboard" class="mobile-nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> <%= t('common.dashboard') %></a>
+        <% if (user.root_admin) { %>
+          <a href="/admin" class="mobile-nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <%= t('common.admin') %></a>
+        <% } %>
+        <a href="/api/keys" class="mobile-nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> <%= t('common.apiKeys') %></a>
+        <a href="/account/ssh-keys" class="mobile-nav-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg> <%= t('common.sshKeys') %></a>
+        <div class="mobile-menu-divider"></div>
+        <a href="/auth/logout" class="mobile-nav-link mobile-menu-btn-danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> <%= t('common.logout') %></a>
+      <% } else { %>
+        <a href="/auth/login" class="mobile-nav-link"><%= t('common.login') %></a>
+        <a href="/auth/register" class="mobile-nav-link"><%= t('common.register') %></a>
+      <% } %>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const btn = document.getElementById('nav-avatar-btn');
+  const dropside = document.getElementById('user-dropside');
+  const overlay = document.getElementById('user-dropside-overlay');
+  if (!btn || !dropside || !overlay) return;
+  const themeBtn = document.getElementById('user-dropside-theme');
+  let lastFocus = null;
+
+  const getFocusables = () => Array.from(dropside.querySelectorAll('a[href], button:not([disabled]), select:not([tabindex="-1"]), [tabindex]:not([tabindex="-1"])'))
+    .filter((el) => el.getClientRects().length > 0);
+
+  const syncTheme = () => {
+    if (!themeBtn) return;
+    const dark = document.documentElement.getAttribute('data-theme') !== 'light';
+    themeBtn.setAttribute('aria-checked', dark ? 'true' : 'false');
+    if (window.t) {
+      themeBtn.title = window.t(dark ? 'nav.darkMode' : 'nav.lightMode');
+    }
+  };
+
+  const open = () => {
+    if (dropside.classList.contains('active')) return;
+    lastFocus = document.activeElement;
+    dropside.classList.add('active');
+    overlay.classList.add('active');
+    dropside.setAttribute('aria-hidden', 'false');
+    syncTheme();
+    const focusables = getFocusables();
+    if (focusables.length) focusables[0].focus();
+  };
+
+  const close = () => {
+    if (!dropside.classList.contains('active')) return;
+    dropside.classList.remove('active');
+    overlay.classList.remove('active');
+    dropside.setAttribute('aria-hidden', 'true');
+    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+  };
+
+  btn.addEventListener('click', open);
+  overlay.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+  dropside.addEventListener('keydown', (e) => {
+    if (e.key !== 'Tab') return;
+    const focusables = getFocusables();
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
+
+  const mobileBtn = document.getElementById('mobile-account-btn');
+  if (mobileBtn) {
+    mobileBtn.addEventListener('click', () => {
+      const menu = document.querySelector('.mobile-menu');
+      const menuOverlay = document.querySelector('.mobile-menu-overlay');
+      if (menu) menu.classList.remove('active');
+      if (menuOverlay) menuOverlay.classList.remove('active');
+      open();
+    });
+  }
+
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      if (typeof window.toggleTheme === 'function') window.toggleTheme();
+      syncTheme();
+    });
+    if (window.MutationObserver) {
+      new MutationObserver(syncTheme).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+      });
+    }
+  }
+
+  const langSel = document.getElementById('user-menu-lang');
+  if (langSel) {
+    langSel.addEventListener('change', async () => {
+      const prev = "<%= (user && user.language) || 'en' %>";
+      try {
+        const res = await fetch('/account/language', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ language: langSel.value })
+        });
+        let body = {};
+        try { body = await res.json(); } catch (e) {}
+        if (!res.ok || !body.ok) throw new Error(body.error || 'failed');
+        window.location.reload();
+      } catch (e) {
+        langSel.value = prev;
+      }
+    });
+  }
+})();
+</script>
+<script>
+(() => {
+  // The reflection overlay is masked with the logo itself, so it only paints
+  // on the icon's opaque pixels instead of the whole square around it.
+  document.querySelectorAll('.nav .nav-logo-media[data-logo]').forEach((media) => {
+    const logo = media.getAttribute('data-logo');
+    if (logo) media.style.setProperty('--logo-url', `url(${JSON.stringify(logo)})`);
+  });
+})();
+</script>
+<script>
+(() => {
+  const list = document.querySelector('.nav-links');
+  if (!list) return;
+  const pill = document.createElement('div');
+  pill.className = 'nav-hover-pill';
+  list.appendChild(pill);
+  let active = list.querySelector('a.active');
+  let target = null;
+
+  // Keep the accent color on whichever link the pill currently covers so the
+  // color travels at the same time as the animated square.
+  const setTarget = (el) => {
+    if (target === el) return;
+    if (target) target.classList.remove('pill-target');
+    target = el;
+    if (target) target.classList.add('pill-target');
+  };
+
+  const moveTo = (el) => {
+    setTarget(el);
+    pill.style.transform = `translate(-50%, ${el.offsetTop}px)`;
+    list.classList.add('pill-visible');
+  };
+  const restAt = () => {
+    if (active) moveTo(active);
+    else {
+      setTarget(null);
+      list.classList.remove('pill-visible');
+    }
+  };
+
+  restAt();
+
+  list.addEventListener('mouseover', (e) => {
+    const link = e.target.closest('a');
+    if (link && list.contains(link)) moveTo(link);
+  });
+
+  list.addEventListener('mouseleave', restAt);
+})();
+</script>
+
+
+

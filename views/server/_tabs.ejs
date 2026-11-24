@@ -1,0 +1,39 @@
+<%
+var __perms = (typeof serverPermissions === 'undefined') ? null : serverPermissions;
+function __can(perm) { return __perms === null || __perms === undefined || __perms.indexOf(perm) !== -1; }
+%>
+<div class="tabs">
+  <% if (__can('console.view')) { %>
+  <a href="/server/<%= server.id %>" class="tab<%= active === 'console' ? ' active' : '' %>"><%= t('server.tabs.console') %></a>
+  <% } %>
+  <% if (__can('files.read')) { %>
+  <a href="/server/<%= server.id %>/files" class="tab<%= active === 'files' ? ' active' : '' %>"><%= t('server.tabs.files') %></a>
+  <% } %>
+  <% if (__can('databases.view')) { %>
+  <a href="/server/<%= server.id %>/databases" class="tab<%= active === 'databases' ? ' active' : '' %>"><%= t('server.tabs.databases') %></a>
+  <% } %>
+  <% if (typeof isServerOwner !== 'undefined' && isServerOwner) { %>
+  <a href="/server/<%= server.id %>/users" class="tab<%= active === 'users' ? ' active' : '' %>"><%= t('server.tabs.users') %></a>
+  <% } %>
+  <% if (__can('backups.view')) { %>
+  <a href="/server/<%= server.id %>/backups" class="tab<%= active === 'backups' ? ' active' : '' %>"><%= t('server.tabs.backups') %></a>
+  <% } %>
+  <% if (__can('network.view')) { %>
+  <a href="/server/<%= server.id %>/network" class="tab<%= active === 'network' ? ' active' : '' %>"><%= t('server.tabs.network') %></a>
+  <% } %>
+  <% if (__can('schedules.view')) { %>
+  <a href="/server/<%= server.id %>/schedules" class="tab<%= active === 'schedules' ? ' active' : '' %>"><%= t('server.tabs.schedules') %></a>
+  <% } %>
+  <% if (__can('startup.view')) { %>
+  <a href="/server/<%= server.id %>/startup" class="tab<%= active === 'startup' ? ' active' : '' %>"><%= t('server.tabs.startup') %></a>
+  <% } %>
+  <% if (__can('settings.view')) { %>
+  <a href="/server/<%= server.id %>/settings" class="tab<%= active === 'settings' ? ' active' : '' %>"><%= t('server.tabs.settings') %></a>
+  <% } %>
+  <% if (typeof user !== 'undefined' && user && user.root_admin) { %>
+  <a href="/admin/servers/<%= server.id %>" class="tab tab-admin" target="_blank" rel="noopener noreferrer" title="<%= t('common.admin') %>">
+    <%= t('common.manage') %>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+  </a>
+  <% } %>
+</div>

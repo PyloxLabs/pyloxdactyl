@@ -1,0 +1,126 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.startup') %></span>
+    </div>
+    <%- include('_tabs', { active: 'startup' }) %>
+
+    <% if (saved) { %>
+      <div class="alert alert-success" style="margin:20px 0 0"><%= t('server.startup.saved') %></div>
+    <% } %>
+
+    <div class="card" style="margin:20px 0">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:8px"><%= t('server.startup.commandTitle') %></h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px"><%= t('server.startup.commandDesc') %></p>
+      <div style="background:#0a0a0c;border-radius:8px;padding:12px;font-family:'Consolas','Courier New',monospace;font-size:12px;color:#a1a1aa;white-space:pre-wrap;word-wrap:break-word"><%= startupCommand || t('server.startup.noCommand') %></div>
+    </div>
+
+    <div class="card" style="margin:20px 0">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:8px"><%= t('server.startup.dockerImageTitle') %></h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px"><%= t('server.startup.dockerImageDesc') %></p>
+      <select name="image" id="docker-image" class="docker-image-select">
+        <% eggImages.forEach(im => { %>
+          <option value="<%= im.image %>" <%= currentImage == im.image ? 'selected' : '' %>><%= im.label && im.label !== im.image ? im.label : im.image %></option>
+        <% }) %>
+        <% if (currentImage && !eggImages.some(im => im.image === currentImage)) { %>
+          <option value="<%= currentImage %>" selected><%= currentImage %></option>
+        <% } %>
+      </select>
+    </div>
+
+    <form method="POST" action="/server/<%= server.id %>/startup" id="startup-form" data-autosave>
+      <div class="card">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('server.startup.variablesTitle') %></h3>
+        <% if (variables.length === 0) { %>
+          <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px"><%= t('server.startup.noVariables') %></div>
+        <% } else { %>
+          <div class="grid-2">
+            <% variables.forEach(v => { %>
+              <div class="form-group">
+                <label><%= v.name %> <span style="color:var(--text-muted);font-size:11px;font-family:monospace">(<%= v.env_var %>)</span></label>
+                <% if (v.user_editable) { %>
+                  <input type="text" name="var_<%= v.env_var %>" value="<%= v.current_value == null ? '' : v.current_value %>" placeholder="<%= v.default_value == null ? '' : v.default_value %>">
+                <% } else { %>
+                  <input type="text" value="<%= v.current_value == null ? '' : v.current_value %>" disabled style="opacity:0.6">
+                <% } %>
+                <% if (v.description) { %>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:6px;white-space:pre-wrap"><%= v.description %></div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="autosave-spinner"></div>
+<script>
+(function () {
+  var serverId = <%= server.id %>;
+  var spinner = document.getElementById('autosave-spinner');
+  var timers = {};
+  var inFlight = 0;
+  var MIN_VISIBLE = 700;
+
+  function setSaving(on) {
+    if (!spinner) return;
+    if (on) spinner.classList.add('visible');
+    else if (inFlight <= 0) spinner.classList.remove('visible');
+  }
+
+  function autoSave(payload) {
+    inFlight++;
+    setSaving(true);
+    var start = Date.now();
+    fetch('/server/' + serverId + '/startup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(payload),
+      credentials: 'same-origin'
+    })
+      .then(function () {})
+      .catch(function () {})
+      .finally(function () {
+        inFlight--;
+        var wait = Math.max(0, MIN_VISIBLE - (Date.now() - start));
+        setTimeout(function () { setSaving(false); }, wait);
+      });
+  }
+
+  var imageSelect = document.getElementById('docker-image');
+  if (imageSelect) {
+    imageSelect.addEventListener('change', function () {
+      autoSave({ image: imageSelect.value });
+    });
+  }
+
+  document.querySelectorAll('#startup-form input[type="text"]').forEach(function (input) {
+    var key = input.getAttribute('name');
+    if (!key) return;
+    var schedule = function () {
+      clearTimeout(timers[key]);
+      timers[key] = setTimeout(function () {
+        var payload = {};
+        payload[key] = input.value;
+        autoSave(payload);
+      }, 900);
+    };
+    input.addEventListener('input', schedule);
+    input.addEventListener('change', schedule);
+  });
+
+  document.querySelectorAll('form[data-autosave]').forEach(function (form) {
+    form.addEventListener('submit', function (e) { e.preventDefault(); });
+  });
+})();
+</script>
+</div>
+</body></html>

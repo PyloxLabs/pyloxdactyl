@@ -1,0 +1,16 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="empty error-page error-page-404">
+      <div class="error-code" aria-hidden="true">404</div>
+      <h3><%= (t('errors.notFound.title') || '404 - Page Not Found').replace(/^\s*\d{3}\s*[-–—:]\s*/, '') %></h3>
+      <p><%= t('errors.notFound.message') %></p>
+      <div class="error-actions">
+        <button type="button" class="btn btn-ghost" onclick="history.back()"><%= t('common.back') %></button>
+        <a href="/" class="btn btn-primary"><%= t('common.goHome') %></a>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

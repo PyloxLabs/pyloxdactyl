@@ -1,0 +1,47 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <a href="/admin/nests" style="color:var(--text-muted);font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></a>
+      <h1 style="font-size:24px"><%= t('admin.nestEdit.title', { name: nest.name }) %></h1>
+    </div>
+    <%- include('_tabs') %>
+    <div style="margin-top:20px"></div>
+    <div class="grid-2">
+      <form method="POST" action="/admin/nests/<%= nest.id %>">
+        <div class="card">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('admin.nestEdit.detailsTitle') %></h3>
+          <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" value="<%= nest.name %>" required></div>
+          <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" value="<%= nest.description || '' %>"></div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:12px"><%= t('admin.nestEdit.authorLabel') %>: <code><%= nest.author || t('common.system') %></code></div>
+          <button type="submit" class="btn btn-primary"><%= t('common.saveChanges') %></button>
+        </div>
+      </form>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="font-size:16px;font-weight:600"><%= t('admin.nestEdit.eggsCount', { count: nestEggs.length }) %></h3>
+        </div>
+        <% if (nestEggs.length === 0) { %>
+          <div class="empty"><h3><%= t('admin.nestEdit.emptyTitle') %></h3><p><%= t('admin.nestEdit.emptyText') %></p></div>
+        <% } else { %>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <% nestEggs.forEach(e => { %>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+                <div>
+                  <a href="/admin/eggs/<%= e.id %>" style="font-weight:600;color:var(--accent)"><%= e.name %></a>
+                  <div style="font-size:11px;color:var(--text-muted)"><%= t('admin.nestEdit.eggMeta', { image: e.docker_image, count: e.server_count }) %></div>
+                </div>
+                <span class="badge badge-purple"><%= e.server_count %></span>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>
+
+
+

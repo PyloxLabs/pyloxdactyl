@@ -1,0 +1,18 @@
+<div class="perm-fields">
+  <% permissionGroups.forEach(function(group) { %>
+    <div class="perm-group">
+      <label class="perm-group-title">
+        <input type="checkbox" data-perm-group="<%= group.id %>">
+        <%= t('server.users.groups.' + group.id) %>
+      </label>
+      <div class="perm-options">
+        <% group.perms.forEach(function(perm) { %>
+          <label class="perm-option">
+            <input type="checkbox" name="permissions" value="<%= perm.key %>" data-group="<%= group.id %>">
+            <%= t('server.users.perms.' + perm.key) %>
+          </label>
+        <% }) %>
+      </div>
+    </div>
+  <% }) %>
+</div>

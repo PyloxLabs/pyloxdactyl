@@ -1,0 +1,16 @@
+<div class="tabs">
+  <a href="/admin" class="tab <%= section === 'dashboard' ? 'active' : '' %>"><%= t('admin.tabs.overview') %></a>
+  <a href="/admin/locations" class="tab <%= section === 'locations' ? 'active' : '' %>"><%= t('admin.tabs.locations') %></a>
+  <a href="/admin/nodes" class="tab <%= section === 'nodes' ? 'active' : '' %>"><%= t('admin.tabs.nodes') %></a>
+  <a href="/admin/servers" class="tab <%= section === 'servers' ? 'active' : '' %>"><%= t('common.servers') %></a>
+  <a href="/admin/databases" class="tab <%= section === 'databases' ? 'active' : '' %>"><%= t('admin.tabs.databases') %></a>
+  <a href="/admin/users" class="tab <%= section === 'users' ? 'active' : '' %>"><%= t('admin.tabs.users') %></a>
+  <a href="/admin/api-keys" class="tab <%= section === 'apikeys' ? 'active' : '' %>"><%= t('admin.tabs.apiKeys') %></a>
+  <a href="/admin/nests" class="tab <%= section === 'nests' ? 'active' : '' %>"><%= t('admin.tabs.nests') %></a>
+  <a href="/admin/eggs" class="tab <%= section === 'eggs' ? 'active' : '' %>"><%= t('admin.tabs.eggs') %></a>
+  <a href="/admin/extensions" class="tab <%= section === 'extensions' ? 'active' : '' %>"><%= t('admin.tabs.extensions') %></a>
+  <% (typeof adminSections !== 'undefined' ? adminSections : []).forEach(function (s) { %>
+    <a href="<%= s.url %>" class="tab <%= currentPath && currentPath.startsWith(s.url) ? 'active' : '' %>"><%= s.label %></a>
+  <% }); %>
+  <a href="/admin/settings" class="tab <%= section === 'settings' ? 'active' : '' %>"><%= t('common.settings') %></a>
+</div>

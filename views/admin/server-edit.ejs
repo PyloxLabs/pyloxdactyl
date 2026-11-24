@@ -1,0 +1,515 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="manage-header">
+      <div class="manage-header-main">
+        <a href="/admin/servers" class="manage-back" aria-label="<%= t('common.servers') %>">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </a>
+        <div>
+          <h1 class="manage-title">
+            <%= srvServer.name %>
+            <span class="badge badge-<%= srvServer.suspended ? 'orange' : (srvServer.status === 'running' ? 'green' : (srvServer.status === 'installing' || srvServer.status === 'starting') ? 'yellow' : 'red') %>"><%= srvServer.suspended ? t('common.suspended') : srvServer.status %></span>
+          </h1>
+          <div class="manage-subtitle">
+            <code><%= srvServer.uuid %></code>
+            <span class="manage-subtitle-sep">·</span>
+            <span><%= t('common.node') %>: <strong><%= srvServer.node_name || t('common.none') %></strong></span>
+            <span class="manage-subtitle-sep">·</span>
+            <span><%= t('common.egg') %>: <strong><%= srvServer.egg_name || t('common.none') %></strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%- include('_tabs') %>
+
+    <div class="manage-tabs" role="tablist" aria-label="<%= t('admin.serverEdit.tabsLabel') %>">
+      <button type="button" class="manage-tab active" role="tab" aria-selected="true" aria-controls="manage-panel-details" data-manage-tab="details">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <%= t('admin.serverEdit.tabs.details') %>
+      </button>
+      <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="manage-panel-build" data-manage-tab="build">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+        <%= t('admin.serverEdit.tabs.build') %>
+      </button>
+      <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="manage-panel-startup" data-manage-tab="startup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+        <%= t('admin.serverEdit.tabs.startup') %>
+      </button>
+      <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="manage-panel-network" data-manage-tab="network">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <%= t('admin.serverEdit.tabs.network') %>
+      </button>
+      <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="manage-panel-databases" data-manage-tab="databases">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <%= t('admin.serverEdit.tabs.databases') %>
+      </button>
+      <button type="button" class="manage-tab" role="tab" aria-selected="false" aria-controls="manage-panel-manage" data-manage-tab="manage">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <%= t('admin.serverEdit.tabs.manage') %>
+      </button>
+    </div>
+
+    <div class="manage-section active" id="manage-panel-details" role="tabpanel" data-manage-section="details">
+      <form method="POST" action="/admin/servers/<%= srvServer.id %>/details">
+        <div class="card">
+          <div class="manage-card-head">
+            <h3><%= t('admin.serverEdit.detailsTitle') %></h3>
+            <p><%= t('admin.serverEdit.detailsDesc') %></p>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" value="<%= srvServer.name %>" required></div>
+            <div class="form-group"><label><%= t('common.owner') %></label><select name="user_id"><% users.forEach(u => { %><option value="<%= u.id %>" <%= srvServer.user_id == u.id ? 'selected' : '' %>><%= u.username %></option><% }) %></select></div>
+          </div>
+          <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" value="<%= srvServer.description || '' %>"></div>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('common.node') %></label><select name="node_id"><% nodes.forEach(n => { %><option value="<%= n.id %>" <%= srvServer.node_id == n.id ? 'selected' : '' %>><%= n.name %></option><% }) %></select></div>
+            <div class="form-group"><label><%= t('admin.serverEdit.primaryAllocation') %></label><select name="allocation_id">
+              <option value=""><%= t('common.none') %></option>
+              <% srvAllocs.forEach(a => { %><option value="<%= a.id %>" <%= srvServer.allocation_id == a.id ? 'selected' : '' %>><%= a.ip %>:<%= a.port %></option><% }) %>
+            </select></div>
+          </div>
+          <div class="form-group">
+            <label><%= t('admin.serverEdit.serverUuid') %></label>
+            <input type="text" value="<%= srvServer.uuid %>" readonly style="font-family:monospace;cursor:pointer" title="Click to copy" onclick="if (window.copyToClipboard) window.copyToClipboard(this.value, '<%= t('server.settings.copied') %>');">
+          </div>
+          <button type="submit" class="btn btn-primary"><%= t('admin.serverEdit.saveDetails') %></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="manage-section" id="manage-panel-build" role="tabpanel" data-manage-section="build">
+      <form method="POST" action="/admin/servers/<%= srvServer.id %>/build">
+        <div class="card">
+          <div class="manage-card-head">
+            <h3><%= t('admin.serverEdit.buildTitle') %></h3>
+            <p><%= t('admin.serverEdit.buildDesc') %></p>
+          </div>
+          <div class="grid-3">
+            <div class="form-group"><label><%= t('common.memoryMb') %></label><input type="number" name="memory" value="<%= srvServer.memory %>"></div>
+            <div class="form-group"><label><%= t('common.swapMb') %></label><input type="number" name="swap" value="<%= srvServer.swap || 0 %>"></div>
+            <div class="form-group"><label><%= t('common.diskMb') %></label><input type="number" name="disk" value="<%= srvServer.disk %>"></div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group"><label><%= t('common.cpuPercent') %></label><input type="number" name="cpu" value="<%= srvServer.cpu %>"></div>
+            <div class="form-group"><label><%= t('common.ioWeight') %></label><input type="number" name="io" value="<%= srvServer.io %>"></div>
+            <div class="form-group"><label><%= t('common.backupLimit') %></label><input type="number" name="backups_limit" value="<%= srvServer.backups_limit %>"></div>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('common.databaseLimit') %></label><input type="number" name="database_limit" value="<%= srvServer.database_limit %>"></div>
+            <div class="form-group"><label><%= t('common.allocationLimit') %></label><input type="number" name="allocation_limit" min="0" value="<%= srvServer.allocation_limit %>"><div style="font-size:11px;color:var(--text-muted);margin-top:4px"><%= t('server.network.limitHint') %></div></div>
+          </div>
+          <button type="submit" class="btn btn-primary"><%= t('admin.serverEdit.saveBuild') %></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="manage-section" id="manage-panel-startup" role="tabpanel" data-manage-section="startup">
+      <form method="POST" action="/admin/servers/<%= srvServer.id %>/startup">
+        <div class="card">
+          <div class="manage-card-head">
+            <h3><%= t('admin.serverEdit.startupTitle') %></h3>
+            <p><%= t('admin.serverEdit.startupDesc') %></p>
+          </div>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('common.startupCommand') %></label><textarea name="startup" rows="3" style="font-family:monospace" required><%= srvServer.startup_command || '' %></textarea></div>
+            <div class="form-group"><label><%= t('common.egg') %></label>
+              <select name="egg_id" id="egg-select">
+                <% nests.forEach(nest => { %>
+                  <optgroup label="<%= nest.name %>">
+                    <% eggs.filter(e => e.nest_id === nest.id).forEach(e => { %>
+                      <option value="<%= e.id %>" <%= srvServer.egg_id == e.id ? 'selected' : '' %>><%= e.name %></option>
+                    <% }) %>
+                  </optgroup>
+                <% }) %>
+                <% eggs.filter(e => !e.nest_id).forEach(e => { %>
+                  <option value="<%= e.id %>" <%= srvServer.egg_id == e.id ? 'selected' : '' %>><%= e.name %></option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label><%= t('common.dockerImage') %></label>
+            <select id="docker-image-select" class="docker-image-select">
+              <% eggImages.forEach(im => { %>
+                <option value="<%= im.image %>" <%= !isCustomImage && selectedImage === im.image ? 'selected' : '' %>><%= im.label && im.label !== im.image ? im.label : im.image %></option>
+              <% }) %>
+              <option value="__custom__" <%= isCustomImage ? 'selected' : '' %>><%= t('admin.serverEdit.customImage') %></option>
+            </select>
+            <div id="custom-image-field" style="margin-top:8px;<%= isCustomImage ? '' : 'display:none' %>">
+              <input type="text" id="custom-image-input" value="<%= isCustomImage ? selectedImage : '' %>" placeholder="<%= t('admin.serverEdit.customImagePlaceholder') %>" style="font-family:monospace;width:100%">
+            </div>
+            <input type="hidden" name="image" id="docker-image-value" value="<%= selectedImage %>">
+          </div>
+          <% if (eggVars.length > 0) { %>
+            <div class="manage-divider">
+              <h4><%= t('admin.serverEdit.eggVariables') %></h4>
+            </div>
+            <div class="grid-2">
+              <% eggVars.forEach(v => { %>
+                <div class="form-group">
+                  <label title="<%= v.env_var %>"><%= v.name %> <code style="font-size:10px"><%= v.env_var %></code></label>
+                  <input type="text" name="var_<%= v.env_var %>" value="<%= v.current_value || '' %>" placeholder="<%= t('admin.serverEdit.defaultPlaceholder', { value: v.default_value || '' }) %>">
+                </div>
+              <% }) %>
+            </div>
+          <% } %>
+          <button type="submit" class="btn btn-primary"><%= t('admin.serverEdit.saveStartup') %></button>
+        </div>
+      </form>
+    </div>
+
+    <div class="manage-section" id="manage-panel-network" role="tabpanel" data-manage-section="network">
+      <div class="card">
+        <div class="manage-card-head">
+          <h3><%= t('admin.serverEdit.networkTitle') %> <span style="font-size:12px;color:var(--text-muted)">(<%= srvAllocs.length %>/<%= Number(srvServer.allocation_limit) > 0 ? srvServer.allocation_limit : t('server.network.unlimited') %>)</span></h3>
+          <p><%= t('admin.serverEdit.networkDesc') %> <%= t('server.network.limitHint') %></p>
+        </div>
+        <div class="manage-primary-alloc">
+          <% if (srvServer.alloc_ip) { %>
+            <span style="font-size:12px;color:var(--text-muted)"><%= t('common.primary') %></span>
+            <code><%= srvServer.alloc_ip %>:<%= srvServer.alloc_port %></code>
+          <% } else { %>
+            <span class="badge badge-gray"><%= t('common.none') %></span>
+          <% } %>
+        </div>
+        <% if (srvAllocs.length > 0) { %>
+          <div class="table-wrap" style="margin-bottom:16px">
+            <table class="table">
+              <thead><tr><th><%= t('common.allocation') %></th><th><%= t('admin.serverEdit.roleHeader') %></th><th><%= t('common.actions') %></th></tr></thead>
+              <tbody>
+                <% srvAllocs.forEach(a => { %>
+                  <tr>
+                    <td><code><%= a.ip %>:<%= a.port %></code></td>
+                    <td>
+                      <% if (srvServer.allocation_id == a.id) { %>
+                        <span class="badge badge-purple"><%= t('common.primary') %></span>
+                      <% } else { %>
+                        <span class="badge badge-gray"><%= t('admin.serverEdit.additional') %></span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <div style="display:flex;gap:6px">
+                        <% if (srvServer.allocation_id != a.id) { %>
+                          <form method="POST" action="/admin/servers/<%= srvServer.id %>/network/primary" style="display:inline">
+                            <input type="hidden" name="allocation_id" value="<%= a.id %>">
+                            <button class="btn btn-ghost btn-sm"><%= t('admin.serverEdit.makePrimary') %></button>
+                          </form>
+                          <form method="POST" action="/admin/servers/<%= srvServer.id %>/network/<%= a.id %>/unassign" style="display:inline" data-confirm="<%= t('admin.serverEdit.unassignConfirm') %>">
+                            <button class="btn btn-danger btn-sm"><%= t('admin.serverEdit.remove') %></button>
+                          </form>
+                        <% } %>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="empty" style="padding:20px;margin-bottom:16px"><h3><%= t('common.none') %></h3><p style="font-size:12px"><%= t('admin.serverEdit.networkDesc') %></p></div>
+        <% } %>
+        <form method="POST" action="/admin/servers/<%= srvServer.id %>/network/assign" style="display:flex;gap:8px;flex-wrap:wrap">
+          <select name="allocation_id" class="select-sm select-flex" style="min-width:220px">
+            <option value=""><%= t('admin.serverEdit.assignPlaceholder') %></option>
+            <% freeAllocs.forEach(a => { %><option value="<%= a.id %>"><%= a.ip %>:<%= a.port %> (<%= a.node_name %>)</option><% }) %>
+          </select>
+          <button class="btn btn-ghost btn-sm"><%= t('admin.serverEdit.assign') %></button>
+        </form>
+      </div>
+    </div>
+
+    <div class="manage-section" id="manage-panel-databases" role="tabpanel" data-manage-section="databases">
+      <div class="card">
+        <div class="manage-card-head">
+          <h3><%= t('admin.serverEdit.databasesTitle', { count: databases.length, limit: srvServer.database_limit }) %></h3>
+          <p><%= t('admin.serverEdit.databasesDesc') %></p>
+        </div>
+        <% if (databases.length > 0) { %>
+          <div class="table-wrap" style="margin-bottom:16px">
+            <table class="table">
+              <thead><tr><th><%= t('common.databaseName') %></th><th><%= t('common.host') %></th><th><%= t('common.username') %></th><th><%= t('common.actions') %></th></tr></thead>
+              <tbody>
+                <% databases.forEach(d => { %>
+                  <tr>
+                    <td><strong><%= d.name %></strong></td>
+                    <td><code><%= d.host %>:<%= d.port %></code></td>
+                    <td><code><%= d.username %></code></td>
+                    <td>
+                      <form method="POST" action="/admin/servers/<%= srvServer.id %>/databases/<%= d.id %>/delete" data-confirm="<%= t('admin.serverEdit.deleteDatabaseConfirm') %>">
+                        <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                      </form>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        <% } else { %>
+          <div class="empty" style="padding:20px;margin-bottom:16px"><h3><%= t('admin.serverEdit.emptyDatabasesTitle') %></h3><p style="font-size:12px"><%= t('admin.serverEdit.emptyDatabasesText') %></p></div>
+        <% } %>
+        <% if (databases.length < srvServer.database_limit) { %>
+          <div class="manage-divider"><h4><%= t('common.createDatabase') %></h4></div>
+          <form method="POST" action="/admin/servers/<%= srvServer.id %>/databases">
+            <div class="grid-2">
+              <div class="form-group"><label><%= t('common.databaseName') %></label><input type="text" name="name" required></div>
+              <div class="form-group"><label><%= t('common.username') %></label><input type="text" name="username" required></div>
+            </div>
+            <div class="grid-3">
+              <div class="form-group"><label><%= t('common.password') %></label><input type="text" name="password" required></div>
+              <div class="form-group"><label><%= t('common.host') %></label><input type="text" name="host" value="127.0.0.1"></div>
+              <div class="form-group"><label><%= t('common.port') %></label><input type="number" name="port" value="3306"></div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm"><%= t('common.createDatabase') %></button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="manage-section" id="manage-panel-manage" role="tabpanel" data-manage-section="manage">
+      <div class="manage-top-row <%= srvServer.install_status === 'install_failed' ? 'grid-2' : '' %>">
+        <% if (srvServer.install_status === 'install_failed') { %>
+          <div class="card">
+            <div class="manage-card-head">
+              <h3><%= t('server.settings.installStatus') %></h3>
+            </div>
+            <div class="alert alert-error"><%= t('server.settings.reinstallFailed', { error: srvServer.install_error || 'unknown error' }) %></div>
+          </div>
+        <% } %>
+
+        <div class="card">
+          <div class="manage-card-head">
+            <h3><%= t('admin.serverEdit.actionsTitle') %></h3>
+            <p><%= t('admin.serverEdit.actionsDesc') %></p>
+          </div>
+          <div class="manage-actions">
+            <div class="manage-action">
+              <div class="manage-action-copy">
+                <strong><%= srvServer.suspended ? t('admin.serverEdit.unsuspend') : t('admin.serverEdit.suspend') %></strong>
+                <span><%= srvServer.suspended ? t('admin.serverEdit.suspensionSuspended') : t('admin.serverEdit.suspensionActive') %></span>
+              </div>
+              <div class="manage-action-buttons">
+                <% if (srvServer.suspended) { %>
+                  <form method="POST" action="/admin/servers/<%= srvServer.id %>/unsuspend">
+                    <button class="btn btn-primary btn-sm"><%= t('admin.serverEdit.unsuspend') %></button>
+                  </form>
+                <% } else { %>
+                  <form method="POST" action="/admin/servers/<%= srvServer.id %>/suspend" data-confirm="<%= t('admin.serverEdit.suspendConfirm') %>">
+                    <button class="btn btn-ghost btn-sm" style="color:#f59e0b;border-color:rgba(245,158,11,0.4)"><%= t('admin.serverEdit.suspend') %></button>
+                  </form>
+                <% } %>
+              </div>
+            </div>
+
+            <div class="manage-action">
+              <div class="manage-action-copy">
+                <strong><%= t('admin.serverEdit.reinstall') %></strong>
+                <span><%= t('admin.serverEdit.reinstallHint') %></span>
+              </div>
+              <div class="manage-action-buttons">
+                <form method="POST" action="/admin/servers/<%= srvServer.id %>/reinstall" data-confirm="<%= t('admin.serverEdit.reinstallConfirm') %>">
+                  <button class="btn btn-danger btn-sm"><%= t('admin.serverEdit.reinstall') %></button>
+                </form>
+              </div>
+            </div>
+
+            <div class="manage-action">
+              <div class="manage-action-copy">
+                <strong><%= t('admin.serverEdit.transfer') %></strong>
+                <span><%= canTransfer ? t('admin.serverEdit.transferHint') : t('admin.serverEdit.transferUnavailable') %></span>
+              </div>
+              <div class="manage-action-buttons">
+                <% if (canTransfer) { %>
+                  <button type="button" class="btn btn-ghost btn-sm" data-transfer-open><%= t('admin.serverEdit.transfer') %></button>
+                <% } else { %>
+                  <button type="button" class="btn btn-ghost btn-sm" data-transfer-open disabled title="<%= t('admin.serverEdit.transferUnavailable') %>"><%= t('admin.serverEdit.transfer') %></button>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="border-color:rgba(239,68,68,0.2)">
+        <div class="manage-card-head">
+          <h3 style="color:#ef4444"><%= t('common.dangerZone') %></h3>
+          <p><%= t('admin.serverEdit.manageDesc') %></p>
+        </div>
+        <% if (nodeData) { %>
+          <div class="manage-node-summary">
+            <%= t('admin.serverEdit.nodeSummary', { name: nodeData.name, memoryUsed: memAlloc, memoryTotal: nodeData.memory, diskUsed: diskAlloc, diskTotal: nodeData.disk * 1024 }) %>
+          </div>
+        <% } %>
+        <div class="manage-danger-footer">
+          <form method="POST" action="/admin/servers/<%= srvServer.id %>/delete" data-confirm="<%= t('admin.serverEdit.deleteConfirm') %>">
+            <button class="btn btn-danger"><%= t('admin.serverEdit.deleteServerButton') %></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if (canTransfer) { %>
+<div class="modal-overlay" id="transfer-server-modal" role="dialog" aria-modal="true">
+  <div class="modal" style="max-width:460px">
+    <button type="button" class="modal-close" data-transfer-close>&times;</button>
+    <h3><%= t('admin.serverEdit.transferTitle') %></h3>
+    <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-top:10px"><%= t('admin.serverEdit.transferDesc') %></p>
+    <form method="POST" action="/admin/servers/<%= srvServer.id %>/transfer">
+      <div class="form-group" style="margin-top:16px">
+        <label><%= t('admin.serverEdit.transferNodeLabel') %></label>
+        <select name="node_id" class="select-sm select-inline" required>
+          <option value=""><%= t('admin.serverEdit.transferNodePlaceholder') %></option>
+          <% otherNodes.forEach(n => { %>
+            <option value="<%= n.id %>"><%= n.name %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" data-transfer-close><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('admin.serverEdit.transfer') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<script>
+  (function () {
+    'use strict';
+
+    var STORAGE_KEY = 'pylox.adminServerTab';
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('[data-manage-tab]'));
+    var sections = Array.prototype.slice.call(document.querySelectorAll('[data-manage-section]'));
+
+    function hasSection(name) {
+      return sections.some(function (section) {
+        return section.getAttribute('data-manage-section') === name;
+      });
+    }
+
+    function activate(name, remember) {
+      if (!name || !hasSection(name)) name = 'details';
+
+      tabs.forEach(function (tab) {
+        var active = tab.getAttribute('data-manage-tab') === name;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+
+      sections.forEach(function (section) {
+        var active = section.getAttribute('data-manage-section') === name;
+        section.classList.toggle('active', active);
+      });
+
+      if (remember) {
+        try { sessionStorage.setItem(STORAGE_KEY, name); } catch (e) { /* ignore */ }
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', '#' + name);
+        }
+      }
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        activate(tab.getAttribute('data-manage-tab'), true);
+      });
+    });
+
+    var initial = (window.location.hash || '').replace(/^#/, '');
+    if (!initial) {
+      try { initial = sessionStorage.getItem(STORAGE_KEY) || ''; } catch (e) { initial = ''; }
+    }
+    activate(initial || 'details', false);
+
+    // Startup > Docker image: options follow the selected egg, plus a custom entry.
+    var eggSelect = document.getElementById('egg-select');
+    var imageSelect = document.getElementById('docker-image-select');
+    var customField = document.getElementById('custom-image-field');
+    var customInput = document.getElementById('custom-image-input');
+    var imageValue = document.getElementById('docker-image-value');
+    var eggImagesByEgg = <%- JSON.stringify(eggImagesByEgg).replace(/</g, '\\u003c') %>;
+    var customLabel = <%- JSON.stringify(t('admin.serverEdit.customImage')).replace(/</g, '\\u003c') %>;
+    var CUSTOM_IMAGE = '__custom__';
+
+    function syncImageValue() {
+      if (!imageSelect || !imageValue) return;
+      var isCustom = imageSelect.value === CUSTOM_IMAGE;
+      imageValue.value = isCustom ? (customInput ? customInput.value : '') : imageSelect.value;
+      if (customField) customField.style.display = isCustom ? '' : 'none';
+    }
+
+    function renderImageOptions(eggId, reset) {
+      if (!imageSelect) return;
+      var list = eggImagesByEgg[eggId] || [];
+      imageSelect.innerHTML = '';
+      list.forEach(function (im) {
+        var opt = document.createElement('option');
+        opt.value = im.image;
+        opt.textContent = im.label && im.label !== im.image ? im.label : im.image;
+        imageSelect.appendChild(opt);
+      });
+      var customOpt = document.createElement('option');
+      customOpt.value = CUSTOM_IMAGE;
+      customOpt.textContent = customLabel;
+      imageSelect.appendChild(customOpt);
+
+      if (reset) {
+        imageSelect.value = list.length ? list[0].image : CUSTOM_IMAGE;
+        if (customInput) customInput.value = '';
+      } else {
+        var current = imageValue ? imageValue.value : '';
+        var found = list.some(function (im) { return im.image === current; });
+        if (found) imageSelect.value = current;
+        else if (current) {
+          imageSelect.value = CUSTOM_IMAGE;
+          if (customInput) customInput.value = current;
+        } else {
+          imageSelect.value = list.length ? list[0].image : CUSTOM_IMAGE;
+        }
+      }
+      syncImageValue();
+    }
+
+    if (imageSelect) {
+      imageSelect.addEventListener('change', syncImageValue);
+      if (customInput) customInput.addEventListener('input', syncImageValue);
+      if (eggSelect) {
+        eggSelect.addEventListener('change', function () { renderImageOptions(eggSelect.value, true); });
+      }
+      renderImageOptions(eggSelect ? eggSelect.value : '', false);
+    }
+
+    // Transfer modal: only opened from the Actions card when another node exists.
+    var transferModal = document.getElementById('transfer-server-modal');
+    var transferOpen = document.querySelector('[data-transfer-open]');
+    if (transferModal && transferOpen) {
+      function closeTransfer() {
+        if (!transferModal.classList.contains('active') && !transferModal.classList.contains('closing')) return;
+        transferModal.classList.add('closing');
+        setTimeout(function () {
+          transferModal.classList.remove('active');
+          transferModal.classList.remove('closing');
+        }, 300);
+      }
+      transferOpen.addEventListener('click', function () {
+        if (transferOpen.disabled) return;
+        transferModal.classList.remove('closing');
+        requestAnimationFrame(function () { transferModal.classList.add('active'); });
+      });
+      Array.prototype.slice.call(transferModal.querySelectorAll('[data-transfer-close]')).forEach(function (btn) {
+        btn.addEventListener('click', closeTransfer);
+      });
+      transferModal.addEventListener('click', function (e) {
+        if (e.target === transferModal) closeTransfer();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && transferModal.classList.contains('active')) closeTransfer();
+      });
+    }
+  })();
+</script>
+</body></html>

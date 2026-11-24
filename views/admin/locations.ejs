@@ -1,0 +1,46 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.locations.title') %></h1><p><%= t('admin.locations.subtitle') %></p></div>
+    <% if (notice === 'nolocations') { %>
+      <div class="alert alert-error" style="margin-bottom:20px"><%= t('admin.locations.noticeNoLocations') %></div>
+    <% } %>
+    <%- include('_tabs') %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 16px">
+      <h3 style="font-size:16px"><%= t('admin.locations.countTitle', { count: locations.length }) %></h3>
+      <button onclick="var o=document.getElementById('create-loc-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('admin.locations.createTitle') %></button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <% locations.forEach(l => { %>
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px">
+          <div>
+            <div style="font-weight:600"><%= l.long %></div>
+            <div style="font-size:12px;color:var(--text-muted)"><%= t('admin.locations.cardMeta', { short: l.short, nodeCount: l.node_count, serverCount: l.server_count }) %></div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <a href="/admin/locations/<%= l.id %>" class="btn btn-ghost btn-sm"><%= t('common.manage') %></a>
+            <form method="POST" action="/admin/locations/<%= l.id %>/delete" data-confirm="<%= t('admin.locations.deleteConfirm') %>"><button class="btn btn-danger btn-sm"><%= t('common.delete') %></button></form>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="create-loc-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.locations.createTitle') %></h3>
+    <form method="POST" action="/admin/locations/create">
+      <div class="form-group"><label><%= t('common.shortCode') %></label><input type="text" name="short" placeholder="<%= t('admin.locations.shortPlaceholder') %>" required></div>
+      <div class="form-group"><label><%= t('common.fullName') %></label><input type="text" name="long" placeholder="<%= t('admin.locations.longPlaceholder') %>" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body></html>
+
+

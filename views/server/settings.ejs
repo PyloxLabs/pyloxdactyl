@@ -1,0 +1,83 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.settings') %></span>
+    </div>
+    <%- include('_tabs', { active: 'settings' }) %>
+
+    <% if (notice === 'sftpregenerated') { %>
+      <div class="alert alert-success" style="margin:12px 0"><%= t('server.settings.sftpRegenerated') %></div>
+    <% } else if (notice === 'reinstallstarted') { %>
+      <div class="alert alert-success" style="margin:12px 0"><%= t('server.settings.reinstallStarted') %></div>
+    <% } else if (installStatus === 'installing') { %>
+      <div class="alert alert-success" style="margin:12px 0"><%= t('server.settings.reinstallRunning') %></div>
+    <% } else if (installStatus === 'install_failed') { %>
+      <div class="alert alert-error" style="margin:12px 0"><%= t('server.settings.reinstallFailed', { error: installError || 'unknown error' }) %></div>
+    <% } %>
+
+    <form method="POST" action="/server/<%= server.id %>/settings">
+      <div class="card" style="margin-bottom:20px">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('server.settings.detailsTitle') %></h3>
+        <div class="form-group"><label><%= t('server.settings.nameLabel') %></label><input type="text" name="name" value="<%= server.name %>" required></div>
+        <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" value="<%= server.description %>"></div>
+        <div class="form-group"><label><%= t('server.settings.containerIdLabel') %></label><input type="text" id="container-id" value="<%= containerId || '—' %>" readonly style="font-family:monospace<% if (containerId) { %>;cursor:pointer<% } %>" title="<%= containerId ? 'Click to copy' : '' %>"></div>
+        <button type="submit" class="btn btn-primary"><%= t('common.saveChanges') %></button>
+      </div>
+    </form>
+
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('server.settings.sftpTitle') %></h3>
+      <div class="form-group"><label><%= t('server.settings.sftpAddressLabel') %></label><input type="text" id="sftp-address" value="<%= sftp.address %>" readonly style="font-family:monospace;cursor:pointer" title="Click to copy"></div>
+      <div class="form-group"><label><%= t('server.settings.sftpUsernameLabel') %></label><input type="text" id="sftp-username" value="<%= sftp.username %>" readonly style="font-family:monospace;cursor:pointer" title="Click to copy"></div>
+      <div class="form-group">
+        <label><%= t('common.password') %></label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="password" id="sftp-password" value="<%= sftp.password %>" readonly style="font-family:monospace;flex:1;cursor:pointer" title="Click to copy">
+          <button type="button" id="sftp-password-toggle" class="btn btn-ghost btn-sm"><%= t('common.show') %></button>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <form method="POST" action="/server/<%= server.id %>/sftp/regenerate" data-confirm="<%= t('server.settings.sftpRegenerateConfirm') %>">
+          <button class="btn btn-ghost btn-sm"><%= t('server.settings.sftpRegenerate') %></button>
+        </form>
+      </div>
+    </div>
+    <script>
+      document.getElementById('sftp-password-toggle').addEventListener('click', function () {
+        var input = document.getElementById('sftp-password');
+        var show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        this.textContent = show ? '<%= t('common.hide') %>' : '<%= t('common.show') %>';
+      });
+      var addr = document.getElementById('sftp-address');
+      if (addr) addr.addEventListener('click', function () { window.copyToClipboard(addr.value, '<%= t('server.settings.copied') %>'); });
+      var user = document.getElementById('sftp-username');
+      if (user) user.addEventListener('click', function () { window.copyToClipboard(user.value, '<%= t('server.settings.copied') %>'); });
+      var pass = document.getElementById('sftp-password');
+      if (pass) pass.addEventListener('click', function () { window.copyToClipboard(pass.value, '<%= t('server.settings.copied') %>'); });
+      var containerId = document.getElementById('container-id');
+      <% if (containerId) { %>
+      if (containerId) containerId.addEventListener('click', function () { window.copyToClipboard(containerId.value, '<%= t('server.settings.copied') %>'); });
+      <% } %>
+    </script>
+
+    <div class="card" style="border-color:rgba(239,68,68,0.2)">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:8px;color:#ef4444"><%= t('common.dangerZone') %></h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px"><%= t('server.settings.reinstallDesc') %></p>
+      <div style="display:flex;gap:8px">
+        <form method="POST" action="/server/<%= server.id %>/reinstall" data-confirm="<%= t('server.settings.reinstallConfirm') %>">
+          <button class="btn btn-danger btn-sm"><%= t('server.settings.reinstallButton') %></button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</body></html>

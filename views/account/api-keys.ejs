@@ -1,0 +1,60 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('common.apiKeys') %></h1><p><%= t('account.apiKeys.subtitle') %></p></div>
+
+    <% if (token) { %>
+      <div class="alert alert-success" style="margin-bottom:20px">
+        <strong><%= t('account.apiKeys.createdTitle') %></strong> <%= t('account.apiKeys.createdPrefix') %> <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px"><%= token %></code><br>
+        <span style="font-size:12px"><%= t('account.apiKeys.copyWarning') %></span>
+      </div>
+    <% } %>
+
+    <div class="card gel-in" style="margin-bottom:24px;--i:0">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('account.apiKeys.createTitle') %></h3>
+      <form method="POST" action="/api/keys/create" style="display:flex;gap:8px">
+        <input type="text" name="memo" placeholder="<%= t('account.apiKeys.memoPlaceholder') %>" style="flex:1;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none">
+        <button class="btn btn-primary btn-sm"><%= t('account.apiKeys.createKey') %></button>
+      </form>
+    </div>
+
+    <div class="card gel-in" style="--i:1">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('account.apiKeys.existingKeys') %></h3>
+      <% if (keys.length === 0) { %>
+        <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px"><%= t('account.apiKeys.empty') %></div>
+      <% } else { %>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <% keys.forEach(k => { %>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border:1px solid var(--border);border-radius:8px">
+              <div>
+                <div style="font-weight:600;font-size:14px"><%= k.memo %></div>
+                <div style="font-size:12px;color:var(--text-muted)">
+                  <%= t('account.apiKeys.created', { date: new Date(k.created_at).toLocaleDateString() }) %>
+                  <% if (k.last_used_at) { %> &middot; <%= t('account.apiKeys.lastUsed', { date: new Date(k.last_used_at).toLocaleDateString() }) %><% } %>
+                </div>
+              </div>
+              <form method="POST" action="/api/keys/<%= k.id %>/delete" data-confirm="<%= t('account.apiKeys.deleteConfirm') %>">
+                <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+              </form>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card gel-in" style="margin-top:24px;--i:2;border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2)">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:8px"><%= t('account.apiKeys.docsTitle') %></h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px"><%- t('account.apiKeys.docsText') %></p>
+      <div style="background:#0a0a0c;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;color:#a1a1aa">
+        <div style="color:var(--text-muted)"><%= t('account.apiKeys.exampleListComment') %></div>
+        <div><%= t('account.apiKeys.exampleListCommand', { url: (process.env.APP_URL || 'http://localhost:6000') }) %></div>
+        <div style="margin-top:8px;color:var(--text-muted)"><%= t('account.apiKeys.exampleDetailsComment') %></div>
+        <div><%= t('account.apiKeys.exampleDetailsCommand', { url: (process.env.APP_URL || 'http://localhost:6000') }) %></div>
+        <div style="margin-top:8px;color:var(--text-muted)"><%= t('account.apiKeys.examplePowerComment') %></div>
+        <div><%= t('account.apiKeys.examplePowerCommand', { url: (process.env.APP_URL || 'http://localhost:6000') }) %></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

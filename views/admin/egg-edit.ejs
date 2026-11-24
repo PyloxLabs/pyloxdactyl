@@ -1,0 +1,119 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <a href="/admin/eggs" style="color:var(--text-muted);font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></a>
+      <h1 style="font-size:24px"><%= t('admin.eggEdit.title', { name: egg.name }) %></h1>
+      <% if (egg.nest_name) { %><span class="badge badge-purple"><%= egg.nest_name %></span><% } %>
+    </div>
+    <%- include('_tabs') %>
+    <% if (notice && notice.startsWith('imported:')) { %>
+      <div class="alert alert-success" style="margin:12px 0"><%= t('admin.eggEdit.noticeImported', { source: decodeURIComponent(notice.replace('imported:','')) }) %></div>
+    <% } %>
+    <div style="margin-top:20px;display:flex;flex-direction:column;gap:20px">
+      <form method="POST" action="/admin/eggs/<%= egg.id %>">
+        <div class="card">
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('admin.eggEdit.configTitle') %></h3>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" value="<%= egg.name %>" required></div>
+            <div class="form-group"><label><%= t('common.nest') %></label><select name="nest_id"><% nests.forEach(n => { %><option value="<%= n.id %>" <%= egg.nest_id == n.id ? 'selected' : '' %>><%= n.name %></option><% }) %></select></div>
+          </div>
+          <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" value="<%= egg.description || '' %>"></div>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('admin.eggEdit.authorLabel') %></label><input type="text" name="author" value="<%= egg.author || '' %>" placeholder="<%= t('common.emailPlaceholder') %>"></div>
+            <div class="form-group"><label><%= t('admin.eggEdit.featuresLabel') %></label><input type="text" name="features" value="<%= eggFeatures.replace(/\"/g, '').replace(/[\[\]]/g, '') %>" placeholder="<%= t('admin.eggEdit.featuresPlaceholder') %>"></div>
+          </div>
+          <% if (eggImages.length > 0) { %>
+            <div class="form-group"><label><%= t('admin.eggEdit.dockerImagePrimary') %></label>
+              <select name="docker_image" class="docker-image-select"><% eggImages.forEach(im => { %><option value="<%= im.image %>" <%= egg.docker_image == im.image ? 'selected' : '' %>><%= im.image %></option><% }) %></select>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:6px"><%= t('admin.eggEdit.imagesSummary', { count: eggImages.length, images: eggImages.map(im => im.image + (im.label && im.label !== im.image ? ' (' + im.label + ')' : '')).join(', ') }) %></div>
+            </div>
+          <% } else { %>
+            <div class="form-group"><label><%= t('admin.eggEdit.dockerImagePrimary') %></label><input type="text" name="docker_image" value="<%= egg.docker_image || '' %>" required></div>
+          <% } %>
+          <div class="form-group"><label><%= t('admin.eggEdit.dockerImagesLabel') %></label><textarea name="docker_images" rows="2" style="font-family:monospace"><%= egg.docker_images || '' %></textarea></div>
+          <div class="form-group"><label><%= t('common.startupCommand') %></label><textarea name="startup" rows="2" style="font-family:monospace"><%= egg.startup || '' %></textarea></div>
+          <div class="grid-2">
+            <div class="form-group"><label><%= t('admin.eggEdit.fileDenylistLabel') %></label><textarea name="file_denylist" rows="2" style="font-family:monospace"><%= eggFileDenylist %></textarea></div>
+            <div class="form-group"><label><%= t('admin.eggEdit.configLabel') %></label><textarea name="config" rows="2" style="font-family:monospace"><%= eggConfig %></textarea></div>
+          </div>
+          <div class="form-group"><label><%= t('admin.eggEdit.installScriptLabel') %></label><textarea name="install_script" rows="3" style="font-family:monospace"><%= eggInstall %></textarea></div>
+          <button type="submit" class="btn btn-primary"><%= t('common.saveConfiguration') %></button>
+        </div>
+      </form>
+
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="font-size:16px;font-weight:600"><%= t('admin.eggEdit.variablesCount', { count: variables.length }) %></h3>
+          <button onclick="var o=document.getElementById('add-var-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('admin.eggEdit.addVariable') %></button>
+        </div>
+        <% if (variables.length === 0) { %>
+          <div class="empty"><h3><%= t('admin.eggEdit.emptyVariablesTitle') %></h3><p><%= t('admin.eggEdit.emptyVariablesText') %></p></div>
+        <% } else { %>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <% variables.forEach(v => { %>
+              <form method="POST" action="/admin/eggs/<%= egg.id %>/variables/<%= v.id %>">
+                <div style="border:1px solid var(--border);border-radius:10px;padding:14px">
+                  <div class="grid-2">
+                    <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" value="<%= v.name %>" placeholder="<%= t('admin.eggEdit.addVarNamePlaceholder') %>" required></div>
+                    <div class="form-group"><label><%= t('admin.eggEdit.envVariable') %></label><input type="text" name="env_var" value="<%= v.env_var %>" placeholder="SERVER_MEMORY" required></div>
+                  </div>
+                  <div class="grid-2">
+                    <div class="form-group"><label><%= t('admin.eggEdit.defaultValue') %></label><input type="text" name="default_value" value="<%= v.default_value || '' %>" placeholder="<%= t('admin.eggEdit.defaultValuePlaceholder') %>"></div>
+                    <div class="form-group"><label><%= t('admin.eggEdit.rules') %></label><input type="text" name="rules" value="<%= v.rules || '' %>" placeholder="<%= t('admin.eggEdit.rulesPlaceholder') %>"></div>
+                  </div>
+                  <div class="grid-3">
+                    <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" value="<%= v.description || '' %>" placeholder="<%= t('admin.eggEdit.addVarDescPlaceholder') %>"></div>
+                    <div class="form-group"><label><%= t('admin.eggEdit.fieldType') %></label><input type="text" name="field_type" value="<%= v.field_type || 'text' %>" placeholder="<%= t('admin.eggEdit.fieldTypePlaceholder') %>"></div>
+                    <div class="form-group"><label><%= t('admin.eggEdit.sortOrder') %></label><input type="number" name="sort_order" value="<%= v.sort_order || 0 %>"></div>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px">
+                    <div style="display:flex;gap:16px">
+                      <label class="checkbox-label"><span class="checkbox"><input type="checkbox" name="user_viewable" <%= v.user_viewable ? 'checked' : '' %>><span class="checkbox-mark"></span></span> <%= t('admin.eggEdit.userViewable') %></label>
+                      <label class="checkbox-label"><span class="checkbox"><input type="checkbox" name="user_editable" <%= v.user_editable ? 'checked' : '' %>><span class="checkbox-mark"></span></span> <%= t('admin.eggEdit.userEditable') %></label>
+                    </div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                      <button type="submit" class="btn btn-ghost btn-sm"><%= t('common.save') %></button>
+                      <button type="submit" form="del-var-<%= v.id %>" class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+              <form method="POST" action="/admin/eggs/<%= egg.id %>/variables/<%= v.id %>/delete" id="del-var-<%= v.id %>" data-confirm="<%= t('admin.eggEdit.deleteVariableConfirm') %>"></form>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="add-var-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.eggEdit.addVariable') %></h3>
+    <form method="POST" action="/admin/eggs/<%= egg.id %>/variables">
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" placeholder="<%= t('admin.eggEdit.addVarNamePlaceholder') %>" required></div>
+        <div class="form-group"><label><%= t('admin.eggEdit.envVariable') %></label><input type="text" name="env_var" placeholder="SERVER_MEMORY" required></div>
+      </div>
+      <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" placeholder="<%= t('admin.eggEdit.addVarDescPlaceholder') %>"></div>
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('admin.eggEdit.defaultValue') %></label><input type="text" name="default_value" placeholder="<%= t('admin.eggEdit.defaultValuePlaceholder') %>"></div>
+        <div class="form-group"><label><%= t('admin.eggEdit.rules') %></label><input type="text" name="rules" placeholder="<%= t('admin.eggEdit.rulesPlaceholder') %>"></div>
+      </div>
+      <div class="form-group"><label><%= t('admin.eggEdit.fieldType') %></label><input type="text" name="field_type" placeholder="<%= t('admin.eggEdit.fieldTypePlaceholder') %>"></div>
+      <div style="display:flex;gap:16px;margin-bottom:16px">
+        <label class="checkbox-label"><span class="checkbox"><input type="checkbox" name="user_viewable" checked><span class="checkbox-mark"></span></span> <%= t('admin.eggEdit.userViewable') %></label>
+        <label class="checkbox-label"><span class="checkbox"><input type="checkbox" name="user_editable" checked><span class="checkbox-mark"></span></span> <%= t('admin.eggEdit.userEditable') %></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('admin.eggEdit.addVariable') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body></html>
+
+

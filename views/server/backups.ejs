@@ -1,0 +1,197 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.backups') %></span>
+    </div>
+    <%- include('_tabs', { active: 'backups' }) %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3 style="font-size:16px"><%= t('server.backups.title', { count: backups.length, limit: server.backups_limit }) %></h3>
+      <% if (backups.length < server.backups_limit) { %>
+        <button type="button" onclick="var o=document.getElementById('create-backup-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('server.backups.createButton') %></button>
+      <% } %>
+    </div>
+    <% if (error) { %>
+      <div class="alert alert-error" style="margin:0 0 16px">
+        <% if (error === 'locked') { %><%= t('server.backups.errorLocked') %>
+        <% } else if (error === 'missing') { %><%= t('server.backups.errorMissing') %>
+        <% } else if (error === 'password') { %><%= t('server.backups.errorPassword') %>
+        <% } else if (error === 'restore') { %><%= t('server.backups.errorRestore', { error: message }) %>
+        <% } else { %><%= t('server.backups.errorCreate', { error: error }) %><% } %>
+      </div>
+    <% } %>
+    <% if (success === 'restored') { %>
+      <div class="alert alert-success" style="margin:0 0 16px"><%= t('server.backups.restoreSuccess') %></div>
+    <% } %>
+    <% if (success === 'deleted') { %>
+      <div class="alert alert-success" style="margin:0 0 16px"><%= t('server.backups.deleteSuccess') %></div>
+    <% } %>
+    <% if (backups.length === 0) { %>
+      <div class="empty"><h3><%= t('server.backups.emptyTitle') %></h3><p><%= t('server.backups.emptyText') %></p></div>
+    <% } else { %>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <% backups.forEach(b => { %>
+          <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;gap:12px">
+            <div style="min-width:0">
+              <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px">
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= b.name %></span>
+                <% if (b.locked) { %><span class="badge badge-yellow"><%= t('server.backups.lockedBadge') %></span><% } %>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted)"><%= new Date(b.created_at).toLocaleString() %></div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+              <span class="badge badge-blue"><%= t('server.backups.sizeBadge', { size: b.sizeText }) %></span>
+              <button type="button" class="icon-btn" data-backup-id="<%= b.id %>" data-backup-name="<%= b.name %>" title="<%= t('server.backups.restore') %>" aria-label="<%= t('server.backups.restore') %>" onclick="openRestoreModal(this)">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+              </button>
+              <a href="/server/<%= server.id %>/backups/download?id=<%= b.id %>" class="icon-btn" title="<%= t('server.backups.download') %>" aria-label="<%= t('server.backups.download') %>">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </a>
+              <form method="POST" action="/server/<%= server.id %>/backups/lock" style="display:inline">
+                <input type="hidden" name="backupId" value="<%= b.id %>">
+                <button class="icon-btn" title="<%= b.locked ? t('server.backups.unlock') : t('server.backups.lock') %>" aria-label="<%= b.locked ? t('server.backups.unlock') : t('server.backups.lock') %>">
+                  <% if (b.locked) { %>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
+                  <% } else { %>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <% } %>
+                </button>
+              </form>
+              <% if (!b.locked) { %>
+                <button type="button" class="icon-btn danger" data-backup-id="<%= b.id %>" data-backup-name="<%= b.name %>" title="<%= t('common.delete') %>" aria-label="<%= t('common.delete') %>" onclick="openDeleteModal(this)">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+              <% } %>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+<% if (backups.length < server.backups_limit) { %>
+<div class="modal-overlay" id="create-backup-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.backups.createButton') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/backups/create">
+      <div class="form-group">
+        <label><%= t('server.backups.nameLabel') %></label>
+        <input type="text" name="name" placeholder="<%= t('server.backups.namePlaceholder') %>" required>
+      </div>
+      <div class="form-group">
+        <label><%= t('server.backups.ignoredLabel') %></label>
+        <textarea name="ignored" rows="4" placeholder="<%= t('server.backups.ignoredPlaceholder') %>" style="font-family:monospace"></textarea>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:6px"><%= t('server.backups.ignoredHint') %></div>
+      </div>
+      <div class="form-group">
+        <div class="label-row" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <label style="margin-bottom:0"><%= t('server.backups.lockedLabel') %></label>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px"><%= t('server.backups.lockedHint') %></div>
+          </div>
+          <label class="settings-switch">
+            <input type="checkbox" name="locked" value="1">
+            <span class="settings-switch-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('server.backups.createButton') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+<% } %>
+<% if (backups.length > 0) { %>
+<div class="modal-overlay" id="restore-backup-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.backups.restoreTitle') %></h3>
+    <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-top:6px" id="restore-desc"></p>
+    <div class="alert alert-error" style="margin-top:14px">
+      <strong style="display:block;margin-bottom:8px"><%= t('server.backups.restoreWarningTitle') %></strong>
+      <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
+        <li><%= t('server.backups.restoreWarning1') %></li>
+        <li><%= t('server.backups.restoreWarning2') %></li>
+      </ul>
+    </div>
+    <form method="POST" action="/server/<%= server.id %>/backups/restore" id="restore-form">
+      <input type="hidden" name="backupId" id="restore-backup-id">
+      <div class="form-group" style="margin-top:16px">
+        <label><%= t('server.backups.restorePasswordLabel') %></label>
+        <input type="password" name="password" id="restore-password" placeholder="<%= t('server.backups.restorePasswordPlaceholder') %>" required autocomplete="current-password">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-danger"><%= t('server.backups.restoreConfirm') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    const descTemplate = <%- JSON.stringify(t('server.backups.restoreDesc')) %>;
+    window.openRestoreModal = function (btn) {
+      const id = btn.getAttribute('data-backup-id');
+      const name = btn.getAttribute('data-backup-name') || '';
+      document.getElementById('restore-backup-id').value = id;
+      document.getElementById('restore-desc').textContent = descTemplate.replace('{name}', name);
+      document.getElementById('restore-password').value = '';
+      document.getElementById('restore-backup-modal').classList.add('active');
+      setTimeout(function () { document.getElementById('restore-password').focus(); }, 50);
+    };
+  })();
+</script>
+<div class="modal-overlay" id="delete-backup-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.backups.deleteTitle') %></h3>
+    <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-top:6px" id="delete-desc"></p>
+    <div class="alert alert-error" style="margin-top:14px">
+      <strong style="display:block;margin-bottom:8px"><%= t('server.backups.deleteWarningTitle') %></strong>
+      <ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">
+        <li><%= t('server.backups.deleteWarning1') %></li>
+        <li><%= t('server.backups.deleteWarning2') %></li>
+      </ul>
+    </div>
+    <form method="POST" action="/server/<%= server.id %>/backups/delete" id="delete-form">
+      <input type="hidden" name="backupId" id="delete-backup-id">
+      <div class="form-group" style="margin-top:16px">
+        <label><%= t('server.backups.deletePasswordLabel') %></label>
+        <input type="password" name="password" id="delete-password" placeholder="<%= t('server.backups.deletePasswordPlaceholder') %>" required autocomplete="current-password">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-danger"><%= t('common.delete') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  (function () {
+    const descTemplate = <%- JSON.stringify(t('server.backups.deleteDesc')) %>;
+    window.openDeleteModal = function (btn) {
+      const id = btn.getAttribute('data-backup-id');
+      const name = btn.getAttribute('data-backup-name') || '';
+      document.getElementById('delete-backup-id').value = id;
+      document.getElementById('delete-desc').textContent = descTemplate.replace('{name}', name);
+      document.getElementById('delete-password').value = '';
+      document.getElementById('delete-backup-modal').classList.add('active');
+      setTimeout(function () { document.getElementById('delete-password').focus(); }, 50);
+    };
+  })();
+</script>
+<% } %>
+</div>
+</body></html>
+
+
+

@@ -1,0 +1,45 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.nests.title') %></h1><p><%= t('admin.nests.subtitle') %></p></div>
+    <%- include('_tabs') %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 16px">
+      <h3 style="font-size:16px"><%= t('admin.nests.countTitle', { count: nests.length }) %></h3>
+      <div style="display:flex;gap:8px">
+        <button onclick="var o=document.getElementById('create-nest-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('admin.nests.createTitle') %></button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <% nests.forEach(n => { %>
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px">
+          <div>
+            <div style="font-weight:600"><a href="/admin/nests/<%= n.id %>" style="color:var(--accent)"><%= n.name %></a></div>
+            <div style="font-size:12px;color:var(--text-muted)"><%= t('admin.nests.cardMeta', { description: n.description || t('admin.nests.noDescription'), eggCount: n.egg_count, serverCount: n.server_count, author: n.author || t('common.system') }) %></div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <a href="/admin/nests/<%= n.id %>" class="btn btn-ghost btn-sm"><%= t('common.manage') %></a>
+            <form method="POST" action="/admin/nests/<%= n.id %>/delete" data-confirm="<%= t('admin.nests.deleteConfirm') %>"><button class="btn btn-danger btn-sm"><%= t('common.delete') %></button></form>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="create-nest-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.nests.createTitle') %></h3>
+    <form method="POST" action="/admin/nests/create">
+      <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" placeholder="<%= t('admin.nests.namePlaceholder') %>" required></div>
+      <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description" placeholder="<%= t('admin.nests.descriptionPlaceholder') %>"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body></html>
+
+

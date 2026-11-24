@@ -1,0 +1,70 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('common.sshKeys') %></h1><p><%= t('account.sshKeys.subtitle') %></p></div>
+
+    <% if (error) { %>
+      <div class="alert alert-error" style="margin-bottom:20px"><%= error %></div>
+    <% } %>
+
+    <div class="card gel-in" style="margin-bottom:24px;--i:0">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:4px"><%= t('account.sshKeys.addTitle') %></h3>
+      <p class="settings-section-desc"><%- t('account.sshKeys.addDesc') %></p>
+      <form method="POST" action="/account/ssh-keys/create">
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="ssh-key-name"><%= t('account.sshKeys.nameLabel') %></label>
+            <input type="text" id="ssh-key-name" name="name" placeholder="<%= t('account.sshKeys.namePlaceholder') %>" maxlength="64">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="ssh-public-key"><%= t('account.sshKeys.publicKeyLabel') %></label>
+          <textarea id="ssh-public-key" name="public_key" rows="3" placeholder="<%= t('account.sshKeys.publicKeyPlaceholder') %>" required style="font-family:monospace;font-size:12px"></textarea>
+        </div>
+        <button class="btn btn-primary"><%= t('account.sshKeys.addKey') %></button>
+      </form>
+    </div>
+
+    <div class="card gel-in" style="--i:1">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('account.sshKeys.yourKeys') %></h3>
+      <% if (keys.length === 0) { %>
+        <div style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px"><%= t('account.sshKeys.empty') %></div>
+      <% } else { %>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <% keys.forEach(k => { %>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 16px;border:1px solid var(--border);border-radius:8px">
+              <div style="min-width:0">
+                <div style="font-weight:600;font-size:14px"><%= k.name %></div>
+                <div style="font-size:12px;color:var(--text-muted);font-family:monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= k.public_key %></div>
+                <% if (k.fingerprint) { %>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:2px"><%= k.fingerprint %></div>
+                <% } %>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;flex-shrink:0">
+                <span style="font-size:11px;color:var(--text-muted)"><%= t('account.sshKeys.added', { date: new Date(k.created_at).toLocaleDateString() }) %></span>
+                <form method="POST" action="/account/ssh-keys/<%= k.id %>/delete" data-confirm="<%= t('account.sshKeys.deleteConfirm') %>">
+                  <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                </form>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card gel-in" style="margin-top:24px;--i:2;border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2)">
+      <h3 style="font-size:16px;font-weight:600;margin-bottom:8px"><%= t('account.sshKeys.howTitle') %></h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px"><%- t('account.sshKeys.howDesc') %></p>
+      <div style="background:#0a0a0c;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;color:#a1a1aa">
+        <div style="color:var(--text-muted)"><%= t('account.sshKeys.exampleKeyComment') %></div>
+        <div>ssh-keygen -t ed25519 -C "you@example.com"</div>
+        <div style="margin-top:8px;color:var(--text-muted)"><%= t('account.sshKeys.exampleShowComment') %></div>
+        <div>cat ~/.ssh/id_ed25519.pub</div>
+        <div style="margin-top:8px;color:var(--text-muted)"><%= t('account.sshKeys.exampleConnectComment') %></div>
+        <div>ssh root@your-server-ip</div>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

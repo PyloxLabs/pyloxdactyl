@@ -1,0 +1,687 @@
+<%- include('partials/head') %>
+<%- include('partials/nav') %>
+<%
+  function fmtMem(mb) {
+    var v = Number(mb) || 0;
+    return v >= 1024
+      ? t('dashboard.memoryBadgeGb', { memory: Math.round(v / 1024 * 100) / 100 })
+      : t('dashboard.memoryBadge', { memory: v });
+  }
+  function fmtDisk(mb) {
+    var v = Number(mb) || 0;
+    return v >= 1024
+      ? t('dashboard.diskBadgeGb', { disk: Math.round(v / 1024 * 100) / 100 })
+      : t('dashboard.diskBadge', { disk: v });
+  }
+%>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div>
+        <h1><%= t('common.dashboard') %></h1>
+        <p><%= t('dashboard.welcome', { username: user.username }) %></p>
+      </div>
+      <% if (user.root_admin) { %>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn <%= !showAll ? 'btn-primary' : '' %>" data-mode="mine"><%= t('dashboard.myServers') %></button>
+          <button type="button" class="btn <%= showAll ? 'btn-primary' : '' %>" data-mode="all"><%= t('dashboard.allServers') %></button>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="dash-toolbar">
+      <div class="dash-search">
+        <svg class="dash-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="dash-search" type="search" class="dash-search-input" placeholder="<%= t('dashboard.searchPlaceholder') %>" autocomplete="off">
+        <kbd class="dash-kbd" aria-hidden="true"></kbd>
+      </div>
+      <div class="dash-controls">
+        <div class="dash-dropdown" id="dash-filter-dd">
+          <button type="button" class="dash-dropdown-toggle" aria-haspopup="listbox" aria-expanded="false">
+            <svg class="dash-dropdown-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+            <span class="dash-dropdown-label"><%= t('dashboard.filterAll') %></span>
+            <svg class="dash-dropdown-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dash-dropdown-menu" role="listbox">
+            <button type="button" class="dash-dropdown-item" data-value="all" role="option"><%= t('dashboard.filterAll') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="running" role="option"><%= t('dashboard.filterOnline') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="starting" role="option"><%= t('dashboard.filterStarting') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="stopping" role="option"><%= t('dashboard.filterStopping') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="offline" role="option"><%= t('dashboard.filterOffline') %></button>
+          </div>
+        </div>
+        <div class="dash-dropdown" id="dash-sort-dd">
+          <button type="button" class="dash-dropdown-toggle" aria-haspopup="listbox" aria-expanded="false">
+            <svg class="dash-dropdown-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h10"/><path d="M11 8h7"/><path d="M11 12h4"/></svg>
+            <span class="dash-dropdown-label"><%= t('dashboard.sortNameAsc') %></span>
+            <svg class="dash-dropdown-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dash-dropdown-menu" role="listbox">
+            <button type="button" class="dash-dropdown-item" data-value="custom" role="option"><%= t('dashboard.sortCustom') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="name-asc" role="option"><%= t('dashboard.sortNameAsc') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="name-desc" role="option"><%= t('dashboard.sortNameDesc') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="newest" role="option"><%= t('dashboard.sortNewest') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="oldest" role="option"><%= t('dashboard.sortOldest') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="status" role="option"><%= t('dashboard.sortStatus') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="memory" role="option"><%= t('dashboard.sortMemory') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="disk" role="option"><%= t('dashboard.sortDisk') %></button>
+            <button type="button" class="dash-dropdown-item" data-value="cpu" role="option"><%= t('dashboard.sortCpu') %></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="server-list" class="server-list" data-show-all="<%= showAll ? '1' : '0' %>" data-user-id="<%= user.id %>">
+      <% if (servers.length === 0) { %>
+        <div class="empty">
+          <div class="empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01"/><path d="M6 17h.01"/></svg></div>
+          <h3><%= t('dashboard.emptyTitle') %></h3>
+          <p><%= t('dashboard.emptyText') %></p>
+        </div>
+      <% } else { %>
+        <div class="server-list-inner" style="display:flex;flex-direction:column;gap:12px">
+          <% servers.forEach((s, i) => { %>
+            <a href="/server/<%= s.id %>" class="server-card status-<%= s.status %>" data-server-id="<%= s.id %>" draggable="true" style="text-decoration:none;color:inherit;--i:<%= Math.min(i, 10) %>">
+              <span class="dash-drag-handle" title="<%= t('dashboard.dragToReorder') %>" aria-label="<%= t('dashboard.dragToReorder') %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg></span>
+              <div class="server-info">
+                <h3>
+                  <% var stColor = s.status === 'running' ? '#22c55e' : (s.status === 'starting' || s.status === 'stopping') ? '#eab308' : '#ef4444'; %>
+                  <% var stPulse = s.status === 'starting' || s.status === 'stopping'; %>
+                  <%= s.name %>
+                  <span class="server-status" style="color:<%= stColor %>" title="<%= s.status %>" aria-label="<%= s.status %>">
+                    <span class="status-icon"><span class="status-dot<%= stPulse ? ' status-pulse' : '' %>"></span></span>
+                  </span>
+                </h3>
+                <% if ((showServerDescription !== false) && s.description && s.description.trim()) { %>
+                  <p class="server-description"><%= s.description %></p>
+                <% } %>
+                <p>
+                  <% if (showAll) { %><span><%= s.owner_username || t('dashboard.unknownOwner') %></span><% } %>
+                  <% if (s.allocation_ip) { %><span style="margin-left:<%= showAll ? 8 : 0 %>px;font-size:14px"><%= s.allocation_ip %>:<%= s.allocation_port %></span><% } else { %><span style="margin-left:<%= showAll ? 8 : 0 %>px;font-size:14px"><%= s.node_name || t('dashboard.unknownNode') %></span><% } %>
+                </p>
+              </div>
+              <div class="server-resources">
+                <span class="res-item" data-res="cpu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg> <span class="res-val"><%= t('dashboard.cpuBadge', { cpu: s.res.cpu }) %></span></span>
+                <span class="res-item" data-res="mem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/><path d="M8 11V9"/><path d="M12 11V9"/><path d="M16 11V9"/><path d="M2 15h20"/><path d="M2 7a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></svg> <span class="res-val"><%= fmtMem(s.res.mem_used) %></span></span>
+                <span class="res-item" data-res="disk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg> <span class="res-val"><%= fmtDisk(s.res.disk_used) %></span></span>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<script>window.__DASH_DATA = <%- JSON.stringify({ servers: servers, showAll: showAll, dashPrefs: (typeof dashPrefs !== 'undefined' ? dashPrefs : null) }).replace(/</g, '\\u003c') %>;</script>
+<script>
+(function () {
+  var list = document.getElementById('server-list');
+  if (!list) return;
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.page-header [data-mode]'));
+
+  var searchInput = document.getElementById('dash-search');
+  var filterDD = document.getElementById('dash-filter-dd');
+  var sortDD = document.getElementById('dash-sort-dd');
+  var kbdHint = document.querySelector('.dash-kbd');
+
+  var initial = window.__DASH_DATA || { servers: [], showAll: false };
+  var current = initial.showAll ? 'all' : 'mine';
+  var busy = false;
+  var cache = {};
+  cache[current] = initial;
+  if (typeof initial.showServerDescription === 'boolean') {
+    SHOW_DESC = initial.showServerDescription;
+  } else if (typeof initial.showServerDescription === 'string') {
+    SHOW_DESC = initial.showServerDescription !== '0';
+  }
+  var currentData = initial;
+
+  var state = { q: '', status: 'all', sort: 'name-asc' };
+  try {
+    var saved = JSON.parse(localStorage.getItem('dashPrefs') || '{}');
+    if (saved) {
+      if (typeof saved.q === 'string') state.q = saved.q;
+      if (typeof saved.status === 'string') state.status = saved.status;
+      if (typeof saved.sort === 'string') state.sort = saved.sort;
+    }
+  } catch (e) {}
+
+  // Card order and the active sort are account settings stored on the server,
+  // so reordering follows the user to every device. Legacy per-device orders
+  // are migrated once and then removed from localStorage.
+  var userId = list.getAttribute('data-user-id') || '0';
+  var prefs = initial.dashPrefs || {};
+  var orders = { mine: [], all: [] };
+  if (prefs.orders) {
+    if (Array.isArray(prefs.orders.mine)) orders.mine = prefs.orders.mine.map(String);
+    if (Array.isArray(prefs.orders.all)) orders.all = prefs.orders.all.map(String);
+  }
+  if (typeof prefs.sort === 'string') state.sort = prefs.sort;
+
+  var legacyOrder = null;
+  if (!orders[current].length) {
+    try {
+      var legacyRaw = JSON.parse(localStorage.getItem('dashOrder_' + userId + '_' + current) || '[]');
+      if (Array.isArray(legacyRaw) && legacyRaw.length) legacyOrder = legacyRaw.map(String);
+    } catch (e) {}
+    if (legacyOrder) {
+      orders[current] = legacyOrder;
+      state.sort = 'custom';
+    }
+  }
+  var customOrder = orders[current].slice();
+
+  function savePrefs(patch) {
+    return fetch('/dashboard/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch || {}),
+    }).catch(function () {});
+  }
+  function saveOrder(order, mode) {
+    var m = mode || current;
+    orders[m] = order.slice();
+    return savePrefs({ mode: m, order: orders[m], sort: state.sort });
+  }
+  function saveSort() {
+    return savePrefs({ sort: state.sort });
+  }
+  function saveState() {
+    try { localStorage.setItem('dashPrefs', JSON.stringify(state)); } catch (e) {}
+  }
+
+  // Push an old browser-only order to the server once, then drop the old keys.
+  if (legacyOrder) {
+    saveOrder(legacyOrder, current);
+    try {
+      localStorage.removeItem('dashOrder_' + userId + '_mine');
+      localStorage.removeItem('dashOrder_' + userId + '_all');
+    } catch (e) {}
+  }
+
+  var STATUS_RANK = { running: 0, starting: 1, stopping: 2, offline: 3 };
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtMem(mb) {
+    var v = Number(mb) || 0;
+    return v >= 1024
+      ? window.t('dashboard.memoryBadgeGb', { memory: Math.round(v / 1024 * 100) / 100 })
+      : window.t('dashboard.memoryBadge', { memory: v });
+  }
+
+  function fmtDisk(mb) {
+    var v = Number(mb) || 0;
+    return v >= 1024
+      ? window.t('dashboard.diskBadgeGb', { disk: Math.round(v / 1024 * 100) / 100 })
+      : window.t('dashboard.diskBadge', { disk: v });
+  }
+
+  function closeAllDropdowns() {
+    Array.prototype.forEach.call(document.querySelectorAll('.dash-dropdown.is-open'), function (d) {
+      d.classList.remove('is-open');
+      var t = d.querySelector('.dash-dropdown-toggle');
+      if (t) t.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function initDropdown(root, onChange) {
+    if (!root) return null;
+    var toggle = root.querySelector('.dash-dropdown-toggle');
+    var label = root.querySelector('.dash-dropdown-label');
+    var items = Array.prototype.slice.call(root.querySelectorAll('.dash-dropdown-item'));
+    if (!toggle || !items.length) return null;
+    var value = items[0].getAttribute('data-value');
+
+    function select(v, fire) {
+      var match = null;
+      items.forEach(function (it) { if (it.getAttribute('data-value') === v) match = it; });
+      if (!match) match = items[0];
+      value = match.getAttribute('data-value');
+      items.forEach(function (it) {
+        var on = it === match;
+        it.classList.toggle('is-selected', on);
+        it.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      if (label) label.textContent = match.textContent;
+      if (fire && onChange) onChange(value);
+    }
+
+    function close() {
+      root.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+    }
+
+    toggle.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var wasOpen = root.classList.contains('is-open');
+      closeAllDropdowns();
+      if (!wasOpen) {
+        root.classList.add('is-open');
+        toggle.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    items.forEach(function (it) {
+      it.addEventListener('click', function (e) {
+        e.stopPropagation();
+        select(it.getAttribute('data-value'), true);
+        close();
+      });
+    });
+
+    return { get: function () { return value; }, set: select, close: close };
+  }
+
+  function statusIcon(status) {
+    var color = status === 'running' ? '#22c55e' : (status === 'starting' || status === 'stopping') ? '#eab308' : '#ef4444';
+    var pulse = status === 'starting' || status === 'stopping';
+    return '<span class="server-status" style="color:' + color + '" title="' + esc(status) + '" aria-label="' + esc(status) + '">' +
+      '<span class="status-icon"><span class="status-dot' + (pulse ? ' status-pulse' : '') + '"></span></span>' +
+    '</span>';
+  }
+
+  function cmp(a, b) {
+    switch (state.sort) {
+      case 'name-desc': return String(b.name).localeCompare(String(a.name));
+      case 'newest': return new Date(b.created_at) - new Date(a.created_at);
+      case 'oldest': return new Date(a.created_at) - new Date(b.created_at);
+      case 'status': return (STATUS_RANK[a.status] || 0) - (STATUS_RANK[b.status] || 0) || String(a.name).localeCompare(String(b.name));
+      case 'memory': return (b.memory || 0) - (a.memory || 0);
+      case 'disk': return (b.disk || 0) - (a.disk || 0);
+      case 'cpu': return (b.cpu || 0) - (a.cpu || 0);
+      default: return String(a.name).localeCompare(String(b.name));
+    }
+  }
+
+  function applyFilters(servers) {
+    var q = state.q.trim().toLowerCase();
+    var out = servers.filter(function (s) {
+      if (state.status !== 'all' && s.status !== state.status) return false;
+       if (q) {
+         var hay = [s.name, s.description, s.node_name, s.owner_username, s.allocation_ip, s.allocation_port, s.id].join(' ').toLowerCase();
+         if (hay.indexOf(q) === -1) return false;
+       }
+      return true;
+    });
+    if (state.sort === 'custom') {
+      var rank = {};
+      customOrder.forEach(function (id, idx) { rank[String(id)] = idx; });
+      // Servers added since the order was saved fall to the end, stably.
+      out.forEach(function (s, idx) {
+        if (rank[String(s.id)] === undefined) rank[String(s.id)] = customOrder.length + idx;
+      });
+      out.sort(function (a, b) { return rank[String(a.id)] - rank[String(b.id)]; });
+    } else {
+      out.sort(cmp);
+    }
+    return out;
+  }
+
+   var SHOW_DESC = <%= (typeof showServerDescription === 'undefined' || showServerDescription) ? 'true' : 'false' %>;
+   var EMPTY_ICON = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="8" rx="2"/><rect x="2" y="13" width="20" height="8" rx="2"/><path d="M6 7h.01"/><path d="M6 17h.01"/></svg>';
+   function emptyHtml(title, text) {
+     return '<div class="empty">' +
+       '<div class="empty-icon">' + EMPTY_ICON + '</div>' +
+       '<h3>' + esc(title) + '</h3>' +
+       (text ? '<p>' + esc(text) + '</p>' : '') +
+     '</div>';
+   }
+
+   function cardHtml(s, showAll, i) {
+     var delay = 'style="text-decoration:none;color:inherit;--i:' + Math.min(i, 10) + '"';
+     var res = s.res || { cpu: 0, mem_used: 0, mem_limit: s.memory, disk_used: 0, disk_limit: s.disk };
+     var dragTitle = esc(window.t('dashboard.dragToReorder'));
+     var desc = (SHOW_DESC && s.description && String(s.description).trim()) ? '<p class="server-description">' + esc(s.description) + '</p>' : '';
+     var addr = s.allocation_ip ? '<span style="margin-left:' + (showAll ? 8 : 0) + 'px;font-size:14px">' + esc(s.allocation_ip) + ':' + esc(s.allocation_port) + '</span>' : '<span style="margin-left:' + (showAll ? 8 : 0) + 'px;font-size:14px">' + esc(s.node_name || window.t('dashboard.unknownNode')) + '</span>';
+     return '<a href="/server/' + esc(s.id) + '" class="server-card status-' + esc(s.status) + '" data-server-id="' + esc(s.id) + '" draggable="true" ' + delay + '>' +
+       '<span class="dash-drag-handle" title="' + dragTitle + '" aria-label="' + dragTitle + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg></span>' +
+       '<div class="server-info">' +
+         '<h3>' + esc(s.name) + statusIcon(s.status) + '</h3>' +
+         desc +
+         '<p>' +
+           (showAll ? '<span>' + esc(s.owner_username || window.t('dashboard.unknownOwner')) + '</span>' : '') +
+           addr +
+         '</p>' +
+       '</div>' +
+      '<div class="server-resources">' +
+        '<span class="res-item" data-res="cpu"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg> <span class="res-val">' + esc(window.t('dashboard.cpuBadge', { cpu: res.cpu })) + '</span></span>' +
+        '<span class="res-item" data-res="mem"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19v-3"/><path d="M10 19v-3"/><path d="M14 19v-3"/><path d="M18 19v-3"/><path d="M8 11V9"/><path d="M12 11V9"/><path d="M16 11V9"/><path d="M2 15h20"/><path d="M2 7a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/></svg> <span class="res-val">' + esc(fmtMem(res.mem_used)) + '</span></span>' +
+        '<span class="res-item" data-res="disk"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg> <span class="res-val">' + esc(fmtDisk(res.disk_used)) + '</span></span>' +
+      '</div>' +
+    '</a>';
+  }
+
+  function render(data) {
+    if (!data.servers.length) {
+      return emptyHtml(window.t('dashboard.emptyTitle'), window.t('dashboard.emptyText'));
+    }
+    var servers = applyFilters(data.servers);
+    if (!servers.length) {
+      return emptyHtml(window.t('dashboard.noResults'), '');
+    }
+    return '<div class="server-list-inner" style="display:flex;flex-direction:column;gap:12px">' +
+      servers.map(function (s, i) { return cardHtml(s, data.showAll, i); }).join('') +
+    '</div>';
+  }
+
+  function reapply() {
+    if (!currentData) return;
+    list.innerHTML = render(currentData);
+  }
+
+  // Drag-and-drop reordering. The source card becomes an empty "drop here" slot
+  // that follows the pointer, while the surrounding cards slide aside via FLIP
+  // transforms so the landing place is visible throughout the drag.
+  var dragId = null;
+  var dragCard = null;
+  var dragStartOrder = [];
+  var dragStartCustom = [];
+  var didDrop = false;
+  var suppressClick = false;
+  var flipCards = [];
+  var flipTimer = null;
+
+  function domOrder() {
+    return Array.prototype.slice.call(list.querySelectorAll('.server-card'))
+      .map(function (c) { return String(c.getAttribute('data-server-id')); });
+  }
+
+  function clearFlip() {
+    if (flipTimer) { clearTimeout(flipTimer); flipTimer = null; }
+    flipCards.forEach(function (c) { c.style.transition = ''; c.style.transform = ''; });
+    flipCards = [];
+  }
+
+  function slideCards(mutate) {
+    var cards = Array.prototype.slice.call(list.querySelectorAll('.server-card'));
+    var before = {};
+    cards.forEach(function (c) {
+      if (c !== dragCard) before[String(c.getAttribute('data-server-id'))] = c.getBoundingClientRect().top;
+    });
+    mutate();
+    cards.forEach(function (c) {
+      if (c === dragCard) return;
+      var oldTop = before[String(c.getAttribute('data-server-id'))];
+      if (oldTop == null) return;
+      var delta = oldTop - c.getBoundingClientRect().top;
+      if (!delta) return;
+      c.style.transition = 'none';
+      c.style.transform = 'translateY(' + delta + 'px)';
+      void c.offsetWidth;
+      c.style.transition = 'transform 190ms cubic-bezier(0.2, 0, 0, 1)';
+      c.style.transform = '';
+      if (flipCards.indexOf(c) === -1) flipCards.push(c);
+    });
+    if (flipTimer) clearTimeout(flipTimer);
+    flipTimer = setTimeout(clearFlip, 230);
+  }
+
+  function restoreDomOrder(order) {
+    var inner = list.querySelector('.server-list-inner');
+    if (!inner) return;
+    slideCards(function () {
+      order.forEach(function (id) {
+        var card = list.querySelector('.server-card[data-server-id="' + id + '"]');
+        if (card) inner.appendChild(card);
+      });
+    });
+  }
+
+  function placeCardBefore(ref) {
+    var inner = list.querySelector('.server-list-inner');
+    if (!inner || !dragCard || ref === dragCard) return;
+    if (ref) {
+      if (dragCard.nextElementSibling === ref) return;
+    } else if (!dragCard.nextElementSibling) {
+      return;
+    }
+    slideCards(function () { inner.insertBefore(dragCard, ref); });
+    customOrder = moveId(customOrder, dragId, ref ? String(ref.getAttribute('data-server-id')) : null, true);
+  }
+
+  function baseOrder() {
+    if (state.sort === 'custom') return customOrder.slice();
+    return currentData.servers.slice().sort(cmp).map(function (s) { return String(s.id); });
+  }
+
+  function ensureOrder() {
+    // Seed the custom order on first drag, but only persist it on an actual drop.
+    if (!customOrder.length) customOrder = baseOrder();
+  }
+
+  function moveId(order, id, targetId, before) {
+    id = String(id);
+    var from = order.indexOf(id);
+    if (from === -1) return order;
+    if (targetId == null) {
+      order.splice(from, 1);
+      order.push(id);
+      return order;
+    }
+    var to = order.indexOf(String(targetId));
+    if (to === -1) to = order.length - 1;
+    order.splice(from, 1);
+    if (to > from) to -= 1;
+    if (!before) to += 1;
+    order.splice(to, 0, id);
+    return order;
+  }
+
+  list.addEventListener('dragstart', function (e) {
+    var card = e.target.closest ? e.target.closest('.server-card') : null;
+    if (!card || !list.contains(card)) { e.preventDefault(); return; }
+    dragId = card.getAttribute('data-server-id');
+    dragCard = card;
+    dragStartOrder = domOrder();
+    didDrop = false;
+    ensureOrder();
+    dragStartCustom = customOrder.slice();
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragId);
+      try { e.dataTransfer.setDragImage(card, 20, 20); } catch (err) {}
+    }
+    card.setAttribute('data-drop-label', window.t('dashboard.dropHere'));
+    card.classList.add('dragging');
+    list.classList.add('is-reordering');
+  });
+
+  list.addEventListener('dragover', function (e) {
+    if (!dragId || !dragCard) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    var card = e.target.closest ? e.target.closest('.server-card') : null;
+    if (card === dragCard) return;
+    if (card && list.contains(card)) {
+      var rect = card.getBoundingClientRect();
+      placeCardBefore((e.clientY - rect.top) < rect.height / 2 ? card : card.nextElementSibling);
+    } else {
+      // Pointer is in a gap: use the nearest card instead of jumping to the end.
+      var nearest = null;
+      var minDist = Infinity;
+      Array.prototype.forEach.call(list.querySelectorAll('.server-card'), function (c) {
+        if (c === dragCard) return;
+        var r = c.getBoundingClientRect();
+        var dist = e.clientY < r.top ? r.top - e.clientY : (e.clientY > r.bottom ? e.clientY - r.bottom : 0);
+        if (dist < minDist) { minDist = dist; nearest = c; }
+      });
+      if (!nearest) { placeCardBefore(null); return; }
+      var nr = nearest.getBoundingClientRect();
+      placeCardBefore(e.clientY < nr.top + nr.height / 2 ? nearest : nearest.nextElementSibling);
+    }
+  });
+
+  function finishDrag() {
+    if (dragCard) dragCard.classList.remove('dragging');
+    dragCard = null;
+    dragId = null;
+  }
+
+  list.addEventListener('drop', function (e) {
+    if (!dragId) return;
+    e.preventDefault();
+    didDrop = true;
+    state.sort = 'custom';
+    saveOrder(customOrder, current);
+    saveState();
+    if (sortApi) sortApi.set('custom');
+    finishDrag();
+    suppressClick = true;
+    setTimeout(function () { suppressClick = false; }, 100);
+  });
+
+  list.addEventListener('dragend', function () {
+    if (!dragId) return;
+    if (!didDrop) {
+      customOrder = dragStartCustom;
+      restoreDomOrder(dragStartOrder);
+      list.classList.remove('is-reordering');
+    }
+    finishDrag();
+  });
+
+  list.addEventListener('click', function (e) {
+    var handle = e.target.closest ? e.target.closest('.dash-drag-handle') : null;
+    if (handle || suppressClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (suppressClick) suppressClick = false;
+    }
+  }, true);
+
+  function getData(mode) {
+    if (cache[mode]) return Promise.resolve(cache[mode]);
+    var url = mode === 'all' ? '/dashboard/servers?all=1' : '/dashboard/servers';
+    return fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (d) { cache[mode] = d; return d; });
+  }
+
+  function setButtons(mode) {
+    buttons.forEach(function (b) {
+      b.classList.toggle('btn-primary', b.getAttribute('data-mode') === mode);
+    });
+  }
+
+  function setMode(mode, push) {
+    if (busy || mode === current) return;
+    busy = true;
+    buttons.forEach(function (b) { b.disabled = true; });
+
+    var data = getData(mode);
+    var anim = new Promise(function (r) { setTimeout(r, 220); });
+
+    list.style.setProperty('--dir', mode === 'all' ? '1' : '-1');
+    list.classList.remove('list-pre-enter');
+    list.classList.add('list-exit');
+
+    Promise.all([data, anim]).then(function (results) {
+      var d = results[0];
+      currentData = d;
+      current = mode;
+      var modePrefs = d.dashPrefs || {};
+      if (modePrefs.orders && Array.isArray(modePrefs.orders[mode])) {
+        orders[mode] = modePrefs.orders[mode].map(String);
+      }
+      customOrder = orders[mode].slice();
+      list.innerHTML = render(d);
+      setButtons(mode);
+      if (push) {
+        history.pushState({ mode: mode }, '', mode === 'all' ? '/dashboard?all=1' : '/dashboard');
+      }
+      list.classList.remove('list-exit');
+      list.classList.add('list-pre-enter');
+      void list.offsetWidth;
+      list.classList.remove('list-pre-enter');
+      buttons.forEach(function (b) { b.disabled = false; });
+      busy = false;
+    }).catch(function () {
+      list.classList.remove('list-exit');
+      buttons.forEach(function (b) { b.disabled = false; });
+      busy = false;
+    });
+  }
+
+  if (searchInput) {
+    searchInput.value = state.q;
+    var searchTimer;
+    searchInput.addEventListener('input', function () {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        state.q = searchInput.value;
+        saveState();
+        reapply();
+      }, 120);
+    });
+  }
+
+  var filterApi = initDropdown(filterDD, function (v) { state.status = v; saveState(); reapply(); });
+  var sortApi = initDropdown(sortDD, function (v) { state.sort = v; saveState(); saveSort(); reapply(); });
+  if (filterApi) filterApi.set(state.status);
+  if (sortApi) sortApi.set(state.sort);
+
+  document.addEventListener('click', function () { closeAllDropdowns(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAllDropdowns();
+  });
+
+  var isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent);
+  if (kbdHint) kbdHint.textContent = isMac ? '\u2318 K' : 'Ctrl K';
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+      e.preventDefault();
+      if (searchInput) { searchInput.focus(); searchInput.select(); }
+    }
+  });
+
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.getAttribute('data-mode'), true); });
+  });
+
+  window.addEventListener('popstate', function (e) {
+    var mode = (e.state && e.state.mode) || (location.search.indexOf('all=1') !== -1 ? 'all' : 'mine');
+    setMode(mode, false);
+  });
+
+  history.replaceState({ mode: current }, '', location.href);
+  reapply();
+
+  function updateResources(rows) {
+    (rows || []).forEach(function (row) {
+      var card = list.querySelector('.server-card[data-server-id="' + row.id + '"]');
+      if (!card) return;
+      var mem = card.querySelector('[data-res="mem"] .res-val');
+      if (mem) mem.textContent = fmtMem(row.mem_used);
+      var disk = card.querySelector('[data-res="disk"] .res-val');
+      if (disk) disk.textContent = fmtDisk(row.disk_used);
+      var cpu = card.querySelector('[data-res="cpu"] .res-val');
+      if (cpu) cpu.textContent = window.t('dashboard.cpuBadge', { cpu: row.cpu });
+      if (row.status) {
+        var badge = card.querySelector('.server-status');
+        if (badge && badge.getAttribute('title') !== row.status) {
+          badge.outerHTML = statusIcon(row.status);
+          card.classList.remove('status-running', 'status-starting', 'status-stopping', 'status-offline');
+          card.classList.add('status-' + row.status);
+        }
+      }
+    });
+  }
+
+  function pollResources() {
+    var url = '/dashboard/stats' + (current === 'all' ? '?all=1' : '');
+    fetch(url, { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && d.servers) updateResources(d.servers); })
+      .catch(function () {});
+  }
+
+  pollResources();
+  setInterval(pollResources, 5000);
+})();
+</script>
+</body></html>

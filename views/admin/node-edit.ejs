@@ -1,0 +1,162 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <a href="/admin/nodes" style="color:var(--text-muted);font-size:14px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></a>
+      <h1 style="font-size:24px"><%= t('admin.nodeEdit.title', { name: node.name }) %></h1>
+      <% if (nodeOnline) { %>
+        <svg class="ecg-svg" width="20" height="15" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-2px;color:#22c55e;margin-left:0">
+          <defs><clipPath id="heart-clip-node-edit"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></clipPath></defs>
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor" stroke="currentColor" stroke-width="1.5"/>
+          <g clip-path="url(#heart-clip-node-edit)"><polyline points="-4,11 4,11 6,8 8,14 10,11 28,11" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="ecg-line"></polyline></g>
+        </svg>
+      <% } else { %>
+        <svg class="ecg-svg" width="20" height="15" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="vertical-align:-2px;color:#ef4444;margin-left:0">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor" stroke="currentColor" stroke-width="1.5"/>
+          <text x="12" y="13" font-size="9" font-weight="700" text-anchor="middle" fill="white">!</text>
+        </svg>
+      <% } %>
+    </div>
+    <%- include('_tabs') %>
+    <div style="margin-top:20px">
+      <div class="grid-2" style="margin-bottom:20px">
+        <form method="POST" action="/admin/nodes/<%= node.id %>" id="edit-node-form">
+          <div class="card">
+            <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('admin.nodeEdit.configTitle') %></h3>
+            <div class="grid-2">
+              <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" value="<%= node.name %>" required></div>
+              <div class="form-group"><label><%= t('common.location') %></label><select name="location_id"><% locations.forEach(l => { %><option value="<%= l.id %>" <%= node.location_id == l.id ? 'selected' : '' %>><%= l.long %></option><% }) %></select></div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label><%= t('common.fqdn') %></label><input type="text" name="fqdn" id="e-fqdn" value="<%= node.fqdn %>" required></div>
+              <div class="form-group"><label><%= t('common.scheme') %></label><select name="scheme" id="e-scheme"><option value="https" <%= node.scheme === 'https' ? 'selected' : '' %>><%= t('common.https') %></option><option value="http" <%= node.scheme === 'http' ? 'selected' : '' %>><%= t('common.http') %></option></select></div>
+            </div>
+            <div class="grid-3">
+              <div class="form-group"><label><%= t('common.memoryMb') %></label><input type="number" name="memory" value="<%= node.memory %>"></div>
+              <div class="form-group"><label><%= t('common.cpuVcores') %></label><input type="number" name="cpu" value="<%= node.cpu %>"></div>
+              <div class="form-group"><label><%= t('common.diskGb') %></label><input type="number" name="disk" value="<%= node.disk %>"></div>
+            </div>
+            <p style="font-size:12px;color:var(--text-muted);margin:-8px 0 16px"><%= t('admin.nodeEdit.resourceNote') %></p>
+            <div class="grid-2">
+              <div class="form-group"><label><%= t('common.memoryOverallocate') %></label><input type="number" name="memory_overallocate" value="<%= node.memory_overallocate %>"></div>
+              <div class="form-group"><label><%= t('common.diskOverallocate') %></label><input type="number" name="disk_overallocate" value="<%= node.disk_overallocate %>"></div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label><%= t('common.daemonListen') %></label><input type="text" name="daemon_listen" id="e-listen" value="<%= node.daemon_listen %>"></div>
+              <div class="form-group"><label><%= t('common.daemonToken') %></label><input type="text" name="daemon_token" id="e-token" value="<%= node.daemon_token %>"></div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group"><label><%= t('common.daemonType') %></label><select name="daemon_type"><option value="rubityle" <%= node.daemon_type !== 'oxlify' ? 'selected' : '' %>><%= t('common.rubityle') %></option><option value="oxlify" <%= node.daemon_type === 'oxlify' ? 'selected' : '' %>><%= t('common.oxlify') %></option></select></div>
+              <div class="form-group"><label><%= t('common.sftpPort') %></label><input type="number" name="sftp_port" id="e-sftp-port" value="<%= node.sftp_port || 2022 %>"></div>
+            </div>
+            <button type="submit" class="btn btn-primary"><%= t('common.saveConfiguration') %></button>
+          </div>
+        </form>
+        <div style="display:flex;flex-direction:column;gap:20px">
+          <div class="card">
+            <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('admin.nodeEdit.resourceOverview') %></h3>
+            <div style="margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span><%= t('common.memory') %></span><span><%= memAlloc %> / <%= node.memory %> MB</span></div>
+              <div style="height:10px;background:var(--surface-hover);border-radius:99px;overflow:hidden">
+                <% var memPct = node.memory ? Math.min(100, Math.round(memAlloc / node.memory * 100)) : 0; %>
+                <div style="height:100%;width:<%= memPct %>%;background:var(--accent);border-radius:99px"></div>
+              </div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span><%= t('common.disk') %></span><span><%= diskAlloc %> / <%= node.disk * 1024 %> MB</span></div>
+              <div style="height:10px;background:var(--surface-hover);border-radius:99px;overflow:hidden">
+                <% var diskPct = node.disk ? Math.min(100, Math.round(diskAlloc / (node.disk * 1024) * 100)) : 0; %>
+                <div style="height:100%;width:<%= diskPct %>%;background:var(--accent2);border-radius:99px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="flex:1">
+            <h3 style="font-size:16px;font-weight:600;margin-bottom:16px"><%= t('admin.nodeEdit.serversCount', { count: nodeServers.length }) %></h3>
+            <% if (nodeServers.length === 0) { %>
+              <div class="empty"><h3><%= t('admin.nodeEdit.emptyServersTitle') %></h3><p><%= t('admin.nodeEdit.emptyServersText') %></p></div>
+            <% } else { %>
+              <div class="table-wrap">
+                <table class="table">
+                  <thead><tr><th><%= t('common.name') %></th><th><%= t('common.owner') %></th><th><%= t('common.egg') %></th><th><%= t('common.status') %></th></tr></thead>
+                  <tbody>
+                    <% nodeServers.forEach(s => { %>
+                      <tr>
+                        <td><a href="/admin/servers/<%= s.id %>" style="color:var(--accent)"><%= s.name %></a></td>
+                        <td><%= s.username || t('common.dash') %></td>
+                        <td style="font-size:12px"><%= s.egg_name || t('common.dash') %></td>
+                        <td><span class="badge badge-<%= s.status === 'running' ? 'green' : s.status === 'starting' ? 'yellow' : 'red' %>"><%= s.status %></span></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="font-size:16px;font-weight:600"><%= t('admin.nodeEdit.allocationsCount', { count: nodeAllocs.length }) %></h3>
+          <button onclick="var o=document.getElementById('add-alloc-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); }); }" class="btn btn-primary btn-sm"><%= t('admin.nodeEdit.addAllocations') %></button>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th><%= t('common.ip') %></th><th><%= t('common.port') %></th><th><%= t('common.alias') %></th><th><%= t('admin.nodeEdit.assignedTo') %></th><th><%= t('common.actions') %></th></tr></thead>
+            <tbody>
+              <% nodeAllocs.forEach(a => { %>
+                <tr>
+                  <td><%= a.ip %></td>
+                  <td><%= a.port %></td>
+                  <td><%= a.ip_alias || t('common.dash') %></td>
+                  <td><% if (a.server_id) { %><a href="/admin/servers/<%= a.server_id %>" style="color:var(--accent)"><%= a.server_name || t('admin.nodeEdit.serverFallback', { id: a.server_id }) %></a><% } else { %><span class="badge badge-gray"><%= t('common.free') %></span><% } %></td>
+                  <td>
+                    <% if (!a.server_id) { %>
+                      <form method="POST" action="/admin/nodes/<%= node.id %>/allocations/<%= a.id %>/delete" data-confirm="<%= t('admin.nodeEdit.deleteAllocConfirm') %>"><button class="btn btn-danger btn-sm"><%= t('common.delete') %></button></form>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<% if (typeof query !== 'undefined' && query && query.setup === '1' && node.daemon_type !== 'oxlify') { %>
+<div class="modal-overlay active" id="daemon-setup-modal">
+  <div class="modal" style="max-width:700px">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); window.location.href='/admin/nodes/<%= node.id %>'; }, 300); }">&times;</button>
+    <h3>Daemon Setup</h3>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Run this single command in your daemon directory to automatically configure <code>config.json</code>. After running it, start the daemon.</p>
+    <div class="form-group">
+      <label>Command</label>
+      <textarea id="daemon-setup-cmd" readonly style="font-family:monospace;font-size:12px;min-height:90px;resize:vertical"><% var panelUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : ''; var token = node.daemon_token || ''; var fullUrl = panelUrl ? panelUrl.replace(/\/$/, '') : ''; %>curl -fsSL "<%= fullUrl %>/admin/nodes/<%= node.id %>/setup?token=<%= encodeURIComponent(token) %>" -o setup.sh && bash setup.sh || wget -O setup.sh "<%= fullUrl %>/admin/nodes/<%= node.id %>/setup?token=<%= encodeURIComponent(token) %>" && bash setup.sh</textarea>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="var ta=document.getElementById('daemon-setup-cmd'); if(ta){ ta.select(); document.execCommand('copy'); }">Copy Command</button>
+      <button type="button" class="btn btn-primary" onclick="var o=document.getElementById('daemon-setup-modal'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); window.location.href='/admin/nodes/<%= node.id %>'; }, 300); }">Done</button>
+    </div>
+  </div>
+</div>
+<% } %>
+<div class="modal-overlay" id="add-alloc-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.nodeEdit.addAllocTitle', { name: node.name }) %></h3>
+    <form method="POST" action="/admin/nodes/<%= node.id %>/allocations">
+      <div class="form-group"><label><%= t('common.ipAddress') %></label><input type="text" name="ip" placeholder="<%= t('common.ipPlaceholder') %>" required></div>
+      <div class="form-group"><label><%= t('common.portsComma') %></label><input type="text" name="ports" placeholder="<%= t('common.portsPlaceholder') %>" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.add') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body></html>
+
+
+

@@ -1,0 +1,633 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= server.name %></span>
+      <span id="status-badge" class="badge badge-<%= status === 'running' ? 'green' : status === 'starting' ? 'yellow' : 'red' %>" style="margin-left:4px"><%= status %><% if (status === 'reconnecting') { %><svg class="badge-spinner" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="5"></circle><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 125.6"></circle></svg><% } %></span>
+<% var powerActive = status === 'running' || status === 'starting'; %>
+<% if (!server.suspended) { %>
+      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
+        <button type="button" onclick="powerAction('start')" class="btn btn-primary btn-sm btn-icon" data-power="start" style="<%= powerActive ? 'display:none' : '' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> <%= t('server.console.start') %></button>
+        <button type="button" onclick="powerAction('stop')" class="btn btn-ghost btn-sm btn-icon" data-power="stop" style="<%= powerActive ? '' : 'display:none' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg> <%= t('server.console.stop') %></button>
+        <button type="button" onclick="powerAction('restart')" class="btn btn-ghost btn-sm btn-icon" data-power="restart" style="<%= powerActive ? '' : 'display:none' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <%= t('server.console.restart') %></button>
+        <button type="button" onclick="powerAction('kill')" class="btn btn-danger btn-sm btn-icon" data-power="kill" style="<%= powerActive ? '' : 'display:none' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> <%= t('server.console.kill') %></button>
+      </div>
+<% } %>
+    </div>
+
+    <%- include('_tabs', { active: 'console' }) %>
+
+    <% if (server.suspended) { %>
+      <div class="alert alert-error" style="margin-bottom:16px"><%= t('server.console.suspendedNotice') %></div>
+    <% } %>
+
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px"><%= t('server.console.infoTitle') %></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+          <div><span style="color:var(--text-muted)"><%= t('server.console.nameLabel') %></span> <%= server.name %></div>
+          <div><span style="color:var(--text-muted)"><%= t('server.console.nodeLabel') %></span> <%= node ? node.name : t('common.na') %></div>
+          <div><span style="color:var(--text-muted)"><%= t('server.console.ipLabel') %></span> <% if (allocation) { %><span id="server-address" style="font-family:monospace;cursor:pointer" title="Click to copy"><%= (allocation.ip_alias || allocation.ip) + ':' + allocation.port %></span><% } else { %><%= t('common.na') %><% } %></div>
+          <div><span style="color:var(--text-muted)"><%= t('server.console.uptimeLabel') %></span> <span id="uptime"><%= t('common.dash') %></span></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:600;color:var(--text-muted);margin-bottom:12px"><%= t('server.console.resourcesTitle') %></div>
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span><%= t('common.cpu') %></span><span id="cpu-usage"><%= t('server.console.cpuValue', { cpu: 0 }) %></span>
+          </div>
+          <div style="height:6px;background:var(--surface-hover);border-radius:3px;overflow:hidden">
+            <div id="cpu-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.5s"></div>
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span><%= t('common.memory') %></span><span id="mem-usage"><%= t('common.resourceUsage', { used: 0, total: server.memory }) %></span>
+          </div>
+          <div style="height:6px;background:var(--surface-hover);border-radius:3px;overflow:hidden">
+            <div id="mem-bar" style="height:100%;width:0%;background:#22c55e;border-radius:3px;transition:width 0.5s"></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span><%= t('common.disk') %></span><span id="disk-usage"><%= t('common.resourceUsage', { used: 0, total: server.disk }) %></span>
+          </div>
+          <div style="height:6px;background:var(--surface-hover);border-radius:3px;overflow:hidden">
+            <div id="disk-bar" style="height:100%;width:0%;background:#06b6d4;border-radius:3px;transition:width 0.5s"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:13px;font-weight:600;color:var(--text-muted)"><%= t('server.console.outputTitle') %></span>
+      </div>
+      <div id="console" style="background:#0a0a0c;padding:16px;font-family:'Consolas','Courier New',monospace;font-size:12px;line-height:1.7;height:400px;overflow-y:auto;color:#a1a1aa;white-space:pre-wrap;word-wrap:break-word"></div>
+      <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px">
+        <input type="text" id="cmd-input" placeholder="<%= t('server.console.commandPlaceholder') %>" style="flex:1;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:monospace;font-size:13px;outline:none" onkeydown="if(event.key==='Enter'){sendCmd();event.preventDefault()}">
+        <button onclick="sendCmd()" class="btn btn-primary btn-sm"><%= t('common.send') %></button>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:20px">
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;font-weight:600;color:var(--text-muted)"><%= t('server.console.cpuGraphTitle') %></span>
+          <span id="cpu-graph-val" style="font-size:13px;font-weight:700;color:var(--accent)"><%= t('server.console.cpuValue', { cpu: 0 }) %></span>
+        </div>
+        <canvas id="cpu-chart" style="display:block;width:100%;height:160px"></canvas>
+        <div id="cpu-graph-window" style="font-size:11px;color:var(--text-muted);margin-top:8px"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <span style="font-size:13px;font-weight:600;color:var(--text-muted)"><%= t('server.console.memoryGraphTitle') %></span>
+          <span id="mem-graph-val" style="font-size:13px;font-weight:700;color:#22c55e"><%= t('common.resourceUsage', { used: 0, total: server.memory }) %></span>
+        </div>
+        <canvas id="mem-chart" style="display:block;width:100%;height:160px"></canvas>
+        <div id="mem-graph-window" style="font-size:11px;color:var(--text-muted);margin-top:8px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="kill-modal">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.console.kill') %></h3>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6"><%= t('server.console.killConfirm') %></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+      <button type="button" class="btn btn-danger" onclick="confirmKill()"><%= t('server.console.kill') %></button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="node-reconnect-modal">
+  <div class="modal node-reconnect-modal">
+    <svg class="node-reconnect-spinner" viewBox="0 0 50 50" width="56" height="56" aria-hidden="true">
+      <circle cx="25" cy="25" r="20" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="5"></circle>
+      <circle cx="25" cy="25" r="20" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 125.6"></circle>
+    </svg>
+    <h3><%= t('server.console.reconnectTitle') %></h3>
+    <p><%= t('server.console.reconnectMessage') %></p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="eula-modal">
+  <div class="modal">
+    <h3><%= t('server.console.eulaTitle') %></h3>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6"><%= t('server.console.eulaMessage') %></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="declineEula()"><%= t('common.cancel') %></button>
+      <button type="button" class="btn btn-primary" onclick="acceptEula()"><%= t('server.console.eulaAccept') %></button>
+    </div>
+  </div>
+</div>
+
+<script>
+const consoleEl = document.getElementById('console');
+const cmdInput = document.getElementById('cmd-input');
+const serverUuid = '<%= server.uuid %>';
+const serverId = '<%= server.id %>';
+const daemonConnected = <%= daemonConnected ? 'true' : 'false' %>;
+const serverSuspended = <%= server.suspended ? 'true' : 'false' %>;
+
+const serverAddressEl = document.getElementById('server-address');
+if (serverAddressEl) {
+  serverAddressEl.addEventListener('click', function () {
+    window.copyToClipboard(serverAddressEl.textContent.trim(), '<%= t('server.console.copied') %>');
+  });
+}
+
+// Node/wings connectivity banner. Shown whenever the panel cannot reach the
+// daemon, and dismissed automatically once it comes back online.
+const nodeReconnectModal = document.getElementById('node-reconnect-modal');
+let nodeReconnectShown = false;
+
+function setNodeConnected(connected) {
+  if (!nodeReconnectModal) return;
+  if (connected) {
+    if (!nodeReconnectShown) return;
+    nodeReconnectShown = false;
+    nodeReconnectModal.classList.add('closing');
+    setTimeout(() => {
+      nodeReconnectModal.classList.remove('active');
+      nodeReconnectModal.classList.remove('closing');
+    }, 300);
+  } else {
+    if (nodeReconnectShown) return;
+    nodeReconnectShown = true;
+    nodeReconnectModal.classList.remove('closing');
+    requestAnimationFrame(() => nodeReconnectModal.classList.add('active'));
+  }
+}
+
+function applyStatus(status) {
+  if (!status) return;
+  const running = status === 'running';
+  const active = running || status === 'starting';
+  const badge = document.getElementById('status-badge');
+  if (badge) {
+    badge.textContent = status;
+    badge.className = 'badge badge-' + (running ? 'green' : status === 'starting' ? 'yellow' : 'red');
+    if (status === 'reconnecting') {
+      badge.insertAdjacentHTML('beforeend', '<svg class="badge-spinner" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="5"></circle><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 125.6"></circle></svg>');
+    }
+  }
+  const topDot = document.getElementById('topbar-server-dot');
+  const topServer = document.getElementById('topbar-server');
+  if (topDot && topServer) {
+    const pending = ['starting', 'stopping', 'installing', 'pending'].includes(status);
+    topDot.className = 'topbar-server-dot topbar-server-dot--' + (running ? 'green' : pending ? 'yellow' : 'red');
+    topServer.title = status;
+  }
+  document.querySelectorAll('[data-power]').forEach((btn) => {
+    const show = !serverSuspended && (btn.dataset.power === 'start' ? !active : active);
+    btn.style.display = show ? 'inline-flex' : 'none';
+  });
+}
+
+async function powerAction(action) {
+  if (serverSuspended) {
+    if (window.showToast) window.showToast(window.t('server.power.suspended'));
+    return;
+  }
+  if (action === 'kill') {
+    var ko = document.getElementById('kill-modal'); if (ko) { ko.classList.remove('closing'); requestAnimationFrame(function(){ ko.classList.add('active'); }); }
+    return;
+  }
+  await executePower(action);
+}
+
+function confirmKill() {
+  document.getElementById('kill-modal').classList.remove('active');
+  executePower('kill');
+}
+
+// Minecraft EULA prompt. Shown when the server logs that it needs the EULA
+// accepted. Accept flips eula.txt to true and restarts; cancel stops it.
+// The console replays recent log history on connect, so confirm against the
+// actual eula.txt before prompting — otherwise an old notice reopens the modal.
+let eulaPrompted = false;
+
+async function maybePromptEula() {
+  if (eulaPrompted) return;
+  eulaPrompted = true;
+  try {
+    const res = await fetch(`/server/${serverId}/eula`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const data = await res.json().catch(() => ({}));
+    if (data && data.accepted) return;
+  } catch {}
+  showEulaModal();
+}
+
+function showEulaModal() {
+  const el = document.getElementById('eula-modal');
+  if (!el) return;
+  el.classList.remove('closing');
+  requestAnimationFrame(() => el.classList.add('active'));
+}
+
+function closeEulaModal() {
+  const el = document.getElementById('eula-modal');
+  if (!el) return;
+  el.classList.add('closing');
+  setTimeout(() => {
+    el.classList.remove('active');
+    el.classList.remove('closing');
+  }, 300);
+}
+
+async function submitEula(action) {
+  closeEulaModal();
+  try {
+    const res = await fetch(`/server/${serverId}/eula`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.ok === false && window.showToast) {
+      window.showToast(data.error || window.t('server.console.eulaFailed'));
+    } else {
+      applyStatus(action === 'accept' ? 'starting' : 'offline');
+    }
+  } catch {}
+}
+
+function acceptEula() { submitEula('accept'); }
+function declineEula() { submitEula('decline'); }
+
+async function executePower(action) {
+  if (action === 'start' || action === 'restart') eulaPrompted = false;
+  const buttons = document.querySelectorAll('[data-power]');
+  buttons.forEach((b) => { b.disabled = true; });
+  const optimistic = action === 'stop' || action === 'kill' ? 'offline' : 'starting';
+  try {
+    const res = await fetch(`/server/${serverId}/power`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify({ action }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.ok === false) {
+      if (window.showToast) window.showToast(data.error || window.t('server.power.failed'));
+      return;
+    }
+    applyStatus(data.status || optimistic);
+  } catch {
+    applyStatus(optimistic);
+  } finally {
+    buttons.forEach((b) => { b.disabled = false; });
+  }
+}
+
+let uptimeSeconds = <%= uptime || 0 %>;
+
+function formatUptime(s) {
+  s = Math.max(0, Math.floor(s));
+  const days = Math.floor(s / 86400);
+  const hours = Math.floor((s % 86400) / 3600);
+  const mins = Math.floor((s % 3600) / 60);
+  const secs = s % 60;
+  const parts = [];
+  if (days) parts.push(window.t('server.console.uptimeDay', { days: days }));
+  if (hours) parts.push(window.t('server.console.uptimeHour', { hours: hours }));
+  if (mins) parts.push(window.t('server.console.uptimeMinute', { mins: mins }));
+  parts.push(window.t('server.console.uptimeSecond', { secs: secs }));
+  return parts.join(' ');
+}
+
+function updateUptime() {
+  const el = document.getElementById('uptime');
+  if (el) el.textContent = uptimeSeconds > 0 ? formatUptime(uptimeSeconds) : window.t('common.dash');
+}
+updateUptime();
+setInterval(() => { if (uptimeSeconds > 0) { uptimeSeconds++; updateUptime(); } }, 1000);
+
+const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+let ws = null;
+let wsReconnectTimer = null;
+
+function connectWS() {
+  ws = new WebSocket(`${protocol}//${location.host}/ws/console?server=${serverUuid}`);
+  ws.onopen = () => { appendConsole(window.t('server.console.wsConnected')); };
+  ws.onclose = () => {
+    appendConsole(window.t('server.console.wsDisconnected'));
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(connectWS, 3000);
+  };
+  ws.onmessage = (e) => { appendConsole(e.data); };
+}
+
+connectWS();
+
+// Minimal ANSI SGR -> HTML renderer plus Pylox branding colors.
+const ANSI_COLORS = {
+  30: '#3f3f46', 31: '#ef4444', 32: '#22c55e', 33: '#eab308',
+  34: '#3b82f6', 35: '#a855f7', 36: '#06b6d4', 37: '#e4e4e7',
+  90: '#71717a', 91: '#f87171', 92: '#4ade80', 93: '#facc15',
+  94: '#60a5fa', 95: '#c084fc', 96: '#22d3ee', 97: '#ffffff',
+};
+const BRAND_PURPLE = '#a855f7';
+
+function xterm256(n) {
+  n = Number(n);
+  if (n < 8) return ANSI_COLORS[30 + n];
+  if (n < 16) return ANSI_COLORS[90 + (n - 8)];
+  if (n >= 232) { const v = 8 + (n - 232) * 10; return `rgb(${v},${v},${v})`; }
+  const c = n - 16;
+  const conv = (x) => (x === 0 ? 0 : 55 + x * 40);
+  return `rgb(${conv(Math.floor(c / 36))},${conv(Math.floor((c % 36) / 6))},${conv(c % 6)})`;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function ansiToHtml(text) {
+  const parts = String(text).split(/\x1b\[([0-9;]*)m/);
+  let html = '';
+  let open = false;
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 2 === 1) {
+      const codes = parts[i].split(';').filter((x) => x !== '').map(Number);
+      if (codes.length === 0) codes.push(0);
+      let style = '';
+      for (let j = 0; j < codes.length; j++) {
+        const c = codes[j];
+        if (c === 0) style = '';
+        else if (c === 1) style += 'font-weight:700;';
+        else if (c === 2) style += 'opacity:.65;';
+        else if (c === 3) style += 'font-style:italic;';
+        else if (c === 4) style += 'text-decoration:underline;';
+        else if ((c >= 30 && c <= 37) || (c >= 90 && c <= 97)) style += `color:${ANSI_COLORS[c]};`;
+        else if (c === 38 || c === 48) {
+          let color = null;
+          if (codes[j + 1] === 5) { color = xterm256(codes[j + 2]); j += 2; }
+          else if (codes[j + 1] === 2) { color = `rgb(${codes[j + 2]},${codes[j + 3]},${codes[j + 4]})`; j += 4; }
+          if (color) style += (c === 38 ? 'color:' : 'background-color:') + color + ';';
+        }
+      }
+      if (open) { html += '</span>'; open = false; }
+      if (style) { html += `<span style="${style}">`; open = true; }
+    } else {
+      html += escapeHtml(parts[i]);
+    }
+  }
+  if (open) html += '</span>';
+  return html;
+}
+
+function formatConsoleLine(line) {
+  const rebranded = String(line).replace(/container@pterodactyl/g, 'container@pylox');
+  let html = ansiToHtml(rebranded);
+  // Force Pylox/Panel branding tokens to purple, overriding any image coloring.
+  html = html.replace(/\[(Panel|Pylox)\]/g, `<span style="color:${BRAND_PURPLE};font-weight:700">[$1]</span>`);
+  html = html.replace(/container@pylox~?/g, (m) => `<span style="color:${BRAND_PURPLE};font-weight:700">${m}</span>`);
+  return html;
+}
+
+function appendConsole(msg) {
+  let html = '';
+  String(msg).split('\n').forEach((line) => {
+    if (!line.trim()) return;
+    if (line.includes('You need to agree to the EULA in order to run the server')) {
+      maybePromptEula();
+    }
+    html += formatConsoleLine(line) + '\n';
+  });
+  if (html) {
+    consoleEl.insertAdjacentHTML('beforeend', html);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+}
+
+function sendCmd() {
+  const cmd = cmdInput.value.trim();
+  if (!cmd) return;
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  ws.send(cmd);
+  cmdInput.value = '';
+}
+
+function clearConsole() { consoleEl.textContent = ''; }
+
+// Resource usage graphs
+const GRAPH_SAMPLES = 40;
+const GRAPH_INTERVAL_MS = 3000;
+const CPU_GRAPH_COLOR = '#a855f7';
+const MEM_GRAPH_COLOR = '#22c55e';
+const serverMemMB = <%= server.memory %>;
+const serverDiskMB = <%= server.disk %>;
+const REDUCE_MOTION = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false;
+const cpuTarget = new Array(GRAPH_SAMPLES).fill(0);
+const memTarget = new Array(GRAPH_SAMPLES).fill(0);
+const cpuView = new Array(GRAPH_SAMPLES).fill(0);
+const memView = new Array(GRAPH_SAMPLES).fill(0);
+const cpuCanvas = document.getElementById('cpu-chart');
+const memCanvas = document.getElementById('mem-chart');
+
+function hexToRgba(hex, a) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
+function pushSample(target, value) {
+  target.shift();
+  target.push(value);
+}
+
+function drawChart(canvas, data, color, max) {
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 300;
+  const h = canvas.clientHeight || 160;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const padX = 4;
+  const padY = 8;
+  const plotW = Math.max(1, w - padX * 2);
+  const plotH = Math.max(1, h - padY * 2);
+  const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || 'rgba(255,255,255,0.08)';
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = gridColor;
+  for (let i = 0; i <= 4; i++) {
+    const y = padY + (plotH * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(padX, y);
+    ctx.lineTo(w - padX, y);
+    ctx.stroke();
+  }
+
+  if (!data.length) return;
+
+  const n = data.length;
+  const stepX = n > 1 ? plotW / (n - 1) : 0;
+  const xFor = (i) => (n === 1 ? padX + plotW / 2 : padX + i * stepX);
+  const yFor = (v) => padY + plotH - (Math.max(0, Math.min(v, max)) / max) * plotH;
+
+  const grad = ctx.createLinearGradient(0, padY, 0, padY + plotH);
+  grad.addColorStop(0, hexToRgba(color, 0.38));
+  grad.addColorStop(1, hexToRgba(color, 0.02));
+
+  ctx.beginPath();
+  ctx.moveTo(xFor(0), yFor(data[0]));
+  for (let i = 1; i < n; i++) ctx.lineTo(xFor(i), yFor(data[i]));
+  ctx.lineTo(xFor(n - 1), padY + plotH);
+  ctx.lineTo(xFor(0), padY + plotH);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(xFor(0), yFor(data[0]));
+  for (let i = 1; i < n; i++) ctx.lineTo(xFor(i), yFor(data[i]));
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(xFor(n - 1), yFor(data[n - 1]), 3, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function drawResourceGraphs() {
+  drawChart(cpuCanvas, cpuView, CPU_GRAPH_COLOR, 100);
+  drawChart(memCanvas, memView, MEM_GRAPH_COLOR, 100);
+}
+
+// Ease the drawn values toward the latest samples for fluid motion.
+let graphRaf = null;
+let graphLastFrame = 0;
+
+function stepGraphs(ts) {
+  const dt = graphLastFrame ? Math.min((ts - graphLastFrame) / 1000, 0.1) : 0.016;
+  graphLastFrame = ts;
+  const a = 1 - Math.exp(-dt / 0.28);
+  let moving = false;
+  for (let i = 0; i < GRAPH_SAMPLES; i++) {
+    const dc = cpuTarget[i] - cpuView[i];
+    const dm = memTarget[i] - memView[i];
+    cpuView[i] += dc * a;
+    memView[i] += dm * a;
+    if (Math.abs(dc) > 0.05 || Math.abs(dm) > 0.05) moving = true;
+  }
+  drawResourceGraphs();
+  if (moving) {
+    graphRaf = requestAnimationFrame(stepGraphs);
+  } else {
+    graphRaf = null;
+    graphLastFrame = 0;
+  }
+}
+
+function kickGraphs() {
+  if (REDUCE_MOTION) {
+    for (let i = 0; i < GRAPH_SAMPLES; i++) {
+      cpuView[i] = cpuTarget[i];
+      memView[i] = memTarget[i];
+    }
+    drawResourceGraphs();
+    return;
+  }
+  if (graphRaf == null) {
+    graphLastFrame = 0;
+    graphRaf = requestAnimationFrame(stepGraphs);
+  }
+}
+
+function setGraphWindowLabels() {
+  const seconds = Math.round((GRAPH_SAMPLES * GRAPH_INTERVAL_MS) / 1000);
+  const label = window.t('server.console.graphWindow', { seconds: seconds });
+  const cpuLabel = document.getElementById('cpu-graph-window');
+  const memLabel = document.getElementById('mem-graph-window');
+  if (cpuLabel) cpuLabel.textContent = label;
+  if (memLabel) memLabel.textContent = label;
+}
+
+setGraphWindowLabels();
+drawResourceGraphs();
+window.addEventListener('resize', drawResourceGraphs);
+
+// Resource polling. A single failed poll is not a dead node (a busy daemon, a
+// GC pause, a restart in flight), so the reconnect banner and the
+// "reconnecting" badge only appear after several polls in a row fail. The
+// first successful poll clears them again.
+const NODE_DOWN_POLL_THRESHOLD = 3;
+let nodeDownPolls = 0;
+
+function noteNodeDown() {
+  nodeDownPolls += 1;
+  if (nodeDownPolls >= NODE_DOWN_POLL_THRESHOLD) setNodeConnected(false);
+}
+
+function noteNodeUp() {
+  nodeDownPolls = 0;
+  setNodeConnected(true);
+}
+
+setInterval(async () => {
+  try {
+    const res = await fetch('/server/<%= server.id %>/api/resources');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.connected === false) {
+        noteNodeDown();
+        if (nodeDownPolls >= NODE_DOWN_POLL_THRESHOLD) applyStatus('reconnecting');
+        return;
+      }
+      noteNodeUp();
+      if (data.status) applyStatus(data.status);
+      if (typeof data.uptime === 'number') { uptimeSeconds = data.uptime; updateUptime(); }
+      const cpu = Number(data.cpu) || 0;
+      const memBytes = Number(data.memory) || 0;
+      const memMB = Math.round(memBytes / 1024 / 1024);
+      const memPct = serverMemMB > 0 ? (memMB / serverMemMB) * 100 : 0;
+      document.getElementById('cpu-usage').textContent = window.t('server.console.cpuValue', { cpu: cpu });
+      document.getElementById('cpu-bar').style.width = Math.min(cpu, 100) + '%';
+      document.getElementById('mem-usage').textContent = window.t('common.resourceUsage', { used: memMB, total: serverMemMB });
+      document.getElementById('mem-bar').style.width = Math.min(memPct, 100) + '%';
+      const diskBytes = Number(data.disk) || 0;
+      const diskMB = Math.round(diskBytes / 1024 / 1024);
+      const diskPct = serverDiskMB > 0 ? (diskMB / serverDiskMB) * 100 : 0;
+      document.getElementById('disk-usage').textContent = window.t('common.resourceUsage', { used: diskMB, total: serverDiskMB });
+      document.getElementById('disk-bar').style.width = Math.min(diskPct, 100) + '%';
+      const cpuGraphVal = document.getElementById('cpu-graph-val');
+      if (cpuGraphVal) cpuGraphVal.textContent = window.t('server.console.cpuValue', { cpu: cpu });
+      const memGraphVal = document.getElementById('mem-graph-val');
+      if (memGraphVal) memGraphVal.textContent = window.t('common.resourceUsage', { used: memMB, total: serverMemMB });
+      pushSample(cpuTarget, Math.max(0, Math.min(cpu, 100)));
+      pushSample(memTarget, Math.max(0, Math.min(memPct, 100)));
+      kickGraphs();
+    }
+  } catch {
+    noteNodeDown();
+  }
+}, 3000);
+
+setNodeConnected(daemonConnected);
+appendConsole(window.t('server.console.connecting'));
+</script>
+</div>
+</body></html>
+
+
+

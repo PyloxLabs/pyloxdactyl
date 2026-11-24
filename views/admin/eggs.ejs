@@ -1,0 +1,93 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.eggs.title') %></h1><p><%= t('admin.eggs.subtitle') %></p></div>
+    <% if (notice && notice.startsWith('imported:')) { %>
+      <div class="alert alert-success" style="margin:12px 0"><%= t('admin.eggs.noticeImported', { source: decodeURIComponent(notice.replace('imported:','')) }) %></div>
+    <% } else if (notice && notice.startsWith('badegg:')) { %>
+      <div class="alert alert-error" style="margin:12px 0"><%= t('admin.eggs.noticeBadEgg', { error: decodeURIComponent(notice.replace('badegg:','')) }) %></div>
+    <% } else if (notice === 'noeggfile') { %>
+      <div class="alert alert-error" style="margin:12px 0"><%= t('admin.eggs.noticeNoFile') %></div>
+    <% } %>
+    <%- include('_tabs') %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 16px">
+      <form method="GET" action="/admin/eggs" style="display:flex;gap:8px;align-items:center">
+        <select name="nest" class="select-sm select-inline" onchange="this.form.submit()">
+          <option value=""><%= t('admin.eggs.allNests') %></option>
+          <% nests.forEach(n => { %>
+            <option value="<%= n.id %>" <%= nestFilter == n.id ? 'selected' : '' %>><%= n.name %></option>
+          <% }) %>
+        </select>
+        <button class="btn btn-ghost btn-sm"><%= t('common.filter') %></button>
+      </form>
+      <div style="display:flex;gap:8px">
+        <button onclick="document.getElementById('import-egg-modal').classList.add('active')" class="btn btn-ghost btn-sm"><%= t('common.importEggJson') %></button>
+        <button onclick="var o=document.getElementById('create-egg-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }" class="btn btn-primary btn-sm"><%= t('admin.eggs.createTitle') %></button>
+      </div>
+    </div>
+    <% if (eggs.length === 0) { %>
+      <div class="empty"><h3><%= t('admin.eggs.emptyTitle') %></h3><p><%= t('admin.eggs.emptyText') %></p></div>
+    <% } else { %>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <% eggs.forEach(e => { %>
+          <div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px">
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600"><a href="/admin/eggs/<%= e.id %>" style="color:var(--accent)"><%= e.name %></a>
+                <% if (e.nest_name) { %><span class="badge badge-purple" style="font-size:10px"><%= e.nest_name %></span><% } %>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><%= t('admin.eggs.cardMeta', { description: e.description, image: e.docker_image, count: e.server_count }) %></div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <a href="/admin/eggs/<%= e.id %>" class="btn btn-ghost btn-sm"><%= t('common.manage') %></a>
+              <form method="POST" action="/admin/eggs/<%= e.id %>/delete" data-confirm="<%= t('admin.eggs.deleteConfirm') %>"><button class="btn btn-danger btn-sm"><%= t('common.delete') %></button></form>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+  </div>
+</div>
+<div class="modal-overlay" id="create-egg-modal">
+  <div class="modal" style="max-width:600px">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.eggs.createTitle') %></h3>
+    <form method="POST" action="/admin/eggs/create">
+      <div class="grid-2">
+        <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" required></div>
+        <div class="form-group"><label><%= t('common.nest') %></label><select name="nest_id"><% nests.forEach(n => { %><option value="<%= n.id %>"><%= n.name %></option><% }) %></select></div>
+      </div>
+      <div class="form-group"><label><%= t('common.description') %></label><input type="text" name="description"></div>
+      <div class="form-group"><label><%= t('common.dockerImage') %></label><input type="text" name="docker_image" placeholder="<%= t('admin.eggs.dockerImagePlaceholder') %>" required></div>
+      <div class="form-group"><label><%= t('common.startupCommand') %></label><textarea name="startup" rows="2" style="font-family:monospace"></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+<div class="modal-overlay" id="import-egg-modal">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('common.importEggJson') %></h3>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px"><%= t('admin.eggs.importDesc') %></p>
+    <form method="POST" action="/admin/eggs/import" enctype="multipart/form-data">
+      <input type="hidden" name="redirect_to" value="/admin/eggs">
+      <div class="form-group"><label><%= t('common.eggFile') %></label><input type="file" name="egg_file" accept=".json,application/json" required></div>
+      <div class="form-group"><label><%= t('common.targetNest') %></label>
+        <select name="nest_id">
+          <option value=""><%= t('common.autoCreateNest') %></option>
+          <% nests.forEach(n => { %><option value="<%= n.id %>"><%= n.name %></option><% }) %>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.importEgg') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+</body></html>
+
+

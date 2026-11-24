@@ -1,0 +1,42 @@
+<%- include('../partials/head') %>
+<body>
+<%- include('../partials/auth-theme-toggle') %>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-side">
+      <div class="logo">
+        <img src="/static/img/Pylox_no_bg.png" alt="<%= siteName %>" style="object-fit:contain;border-radius:8px">
+        <span><%= siteName %></span>
+      </div>
+      <h2><%= t('auth.register.title') %></h2>
+      <p class="subtitle"><%= t('auth.register.subtitle') %></p>
+    </div>
+    <div class="auth-main">
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <form method="POST" action="/auth/register">
+        <div class="form-group">
+          <label><%= t('common.username') %></label>
+          <input type="text" name="username" placeholder="<%= t('auth.register.usernamePlaceholder') %>" required autofocus>
+        </div>
+        <div class="form-group">
+          <label><%= t('common.email') %></label>
+          <input type="email" name="email" placeholder="<%= t('common.emailPlaceholder') %>" required>
+        </div>
+        <div class="form-group">
+          <label><%= t('common.password') %></label>
+          <input type="password" name="password" placeholder="<%= t('common.passwordPlaceholder') %>" required minlength="8">
+        </div>
+        <div class="form-group">
+          <label><%= t('auth.register.confirmPassword') %></label>
+          <input type="password" name="password_confirm" placeholder="<%= t('common.passwordPlaceholder') %>" required minlength="8">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%"><%= t('auth.register.title') %></button>
+      </form>
+      <%- extensionHook('auth.register.buttons') %>
+      <p class="switch"><%= t('auth.register.haveAccount') %> <a href="/auth/login"><%= t('auth.register.signIn') %></a></p>
+    </div>
+  </div>
+</div>
+</body></html>

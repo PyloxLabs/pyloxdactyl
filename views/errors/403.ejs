@@ -1,0 +1,16 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="empty error-page error-page-403">
+      <div class="error-code" aria-hidden="true">403</div>
+      <h3><%= (t('errors.forbidden.title') || '403 - Forbidden').replace(/^\s*\d{3}\s*[-–—:]\s*/, '') %></h3>
+      <p><%= t('errors.forbidden.message') %></p>
+      <div class="error-actions">
+        <button type="button" class="btn btn-ghost" onclick="history.back()"><%= t('common.back') %></button>
+        <a href="/" class="btn btn-primary"><%= t('common.goHome') %></a>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

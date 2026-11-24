@@ -1,0 +1,585 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.files.title') %></span>
+    </div>
+    <%- include('_tabs', { active: 'files' }) %>
+
+    <% if (typeof filesError !== 'undefined' && filesError) { %>
+      <div style="margin:12px 0;padding:12px 14px;border:1px solid #7f1d1d;background:rgba(127,29,29,.15);color:#fca5a5;border-radius:6px;font-size:13px">
+        <strong><%= t('server.files.title') %>:</strong> <%= filesError %>
+      </div>
+    <% } %>
+
+
+    <%
+    function fileIconClass(name) {
+      var ext = (String(name).split('.').pop() || '').toLowerCase();
+      var groups = {
+        code: ['js', 'mjs', 'cjs', 'ts', 'tsx', 'jsx', 'json', 'html', 'htm', 'css', 'scss', 'sass', 'less', 'ejs', 'php', 'py', 'rb', 'go', 'rs', 'java', 'kt', 'c', 'h', 'cpp', 'hpp', 'cs', 'sh', 'bash', 'yml', 'yaml', 'xml', 'sql', 'toml', 'ini', 'env'],
+        image: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff'],
+        media: ['mp4', 'mkv', 'mov', 'avi', 'webm', 'mp3', 'wav', 'ogg', 'flac', 'm4a'],
+        archive: ['zip', 'tar', 'gz', 'tgz', 'rar', '7z', 'bz2', 'xz', 'tbz2', 'txz', 'lz', 'lzma', 'lzo', 'zst'],
+        doc: ['txt', 'md', 'markdown', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'log']
+      };
+      for (var group in groups) {
+        if (groups[group].indexOf(ext) !== -1) return group;
+      }
+      return 'file';
+    }
+    %>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-muted)">
+        <input type="checkbox" id="select-all" class="file-select-all" title="<%= t('server.files.selectAll') %>">
+        <div style="display:flex;align-items:center;gap:6px;background:var(--surface);padding:2px 8px;border-radius:4px;font-size:13px">
+          <%
+            let pathSegments = [];
+            if (currentPath === '/' || currentPath === '') {
+              pathSegments = [];
+            } else {
+              let clean = currentPath;
+              if (clean.startsWith('/')) clean = clean.substring(1);
+              if (clean.endsWith('/')) clean = clean.substring(0, clean.length - 1);
+              pathSegments = clean ? clean.split('/') : [];
+            }
+          %>
+          <a href="/server/<%= server.id %>/files?dir=/" data-navigate-folder style="color:var(--text);text-decoration:none;cursor:pointer">root</a>
+          <% if (pathSegments.length > 0) { %>
+            <span style="color:var(--text-muted)">></span>
+            <% pathSegments.forEach((seg, idx) => {
+              let segmentPath = '/' + pathSegments.slice(0, idx + 1).join('/');
+            %>
+              <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(segmentPath) %>" data-navigate-folder style="color:var(--text);text-decoration:none;cursor:pointer"><%= seg %></a>
+              <% if (idx < pathSegments.length - 1) { %><span style="color:var(--text-muted)">></span><% } %>
+            <% }); %>
+          <% } %>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" class="btn btn-sm" style="border:1px solid var(--border);background:transparent;cursor:pointer" onclick="var o=document.getElementById('new-folder-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }"><%= t('server.files.newFolder') %></button>
+        <button type="button" class="btn btn-sm" style="border:1px solid var(--border);background:transparent;cursor:pointer" onclick="var o=document.getElementById('new-file-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); });; }"><%= t('server.files.newFile') %></button>
+        <input type="file" id="file-upload-input" name="files" multiple style="display:none">
+        <button type="button" id="file-upload-btn" class="btn btn-primary btn-sm"><%= t('common.upload') %></button>
+      </div>
+    </div>
+
+    <% if (currentPath !== '/') { %>
+      <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(currentPath.split('/').slice(0, -1).join('/') || '/') %>" data-navigate-folder style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);text-decoration:none;margin-bottom:12px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> <%= t('common.back') %>
+      </a>
+    <% } %>
+
+    <div class="table-wrap">
+      <table class="table files-table">
+        <thead><tr><th class="file-col-check"></th><th class="file-col-name"><%= t('common.name') %></th><th class="file-col-size"><%= t('server.files.colSize') %></th><th class="file-col-modified"><%= t('server.files.colModified') %></th></tr></thead>
+        <tbody>
+          <% files.forEach(f => { const fullPath = (currentPath === '/' ? '/' : currentPath + '/') + f.name; %>
+            <tr class="<%= 'file-row' %>">
+              <td class="file-col-check"><input type="checkbox" class="file-check" data-name="<%= f.name %>"></td>
+              <td class="file-col-name">
+                <% if (f.isDirectory) { %>
+                  <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(currentPath === '/' ? '/' + f.name : currentPath + '/' + f.name) %>" data-navigate-folder style="display:flex;align-items:center;gap:10px">
+                    <span class="file-icon folder">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+                    </span>
+                    <span class="file-name"><%= f.name %></span>
+                  </a>
+                <% } else { const exec = typeof isExecutable === 'function' && isExecutable(f.name); const compressed = typeof isCompressed === 'function' && isCompressed(f.name); const blocked = exec || compressed; %>
+                  <a<% if (!blocked) { %> href="/server/<%= server.id %>/files/edit?path=<%= encodeURIComponent(fullPath) %>" data-file-edit data-path="<%= fullPath %>"<% } %> class="<%= blocked ? 'file-blocked' : '' %>"<% if (blocked) { %> title="<%= exec ? t('server.files.executableBlocked') : t('server.files.archiveBlocked') %>"<% } %> style="display:flex;align-items:center;gap:10px">
+                    <span class="file-icon <%= fileIconClass(f.name) %>">
+                      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 2H7a2.5 2.5 0 0 0-2.5 2.5v15A2.5 2.5 0 0 0 7 22h10a2.5 2.5 0 0 0 2.5-2.5V8L13.5 2z"/><path d="M13.5 2v3.5A2.5 2.5 0 0 0 16 8h3.5L13.5 2z" fill="#fff" fill-opacity="0.35"/></svg>
+                    </span>
+                    <span class="file-name"><%= f.name %></span>
+                  </a>
+                <% } %>
+                <div class="file-actions" hidden>
+                  <button type="button" title="<%= t('server.files.rename') %>" data-action="rename" data-file="<%= fullPath %>" data-name="<%= f.name %>"></button>
+                  <button type="button" title="<%= t('server.files.move') %>" data-action="move" data-file="<%= fullPath %>"></button>
+                  <button type="button" title="<%= t('server.files.permissions') %>" data-action="permissions" data-file="<%= fullPath %>"></button>
+                  <form method="POST" action="/server/<%= server.id %>/files/archive">
+                    <input type="hidden" name="file" value="<%= fullPath %>">
+                    <button type="submit" data-action="archive" title="<%= t('server.files.archive') %>"></button>
+                  </form>
+                  <% if (!f.isDirectory && typeof isCompressed === 'function' && isCompressed(f.name)) { %>
+                  <form method="POST" action="/server/<%= server.id %>/files/extract">
+                    <input type="hidden" name="file" value="<%= fullPath %>">
+                    <button type="submit" data-action="unarchive" title="<%= t('server.files.unarchive') %>"></button>
+                  </form>
+                  <% } %>
+                  <form method="POST" action="/server/<%= server.id %>/files/duplicate">
+                    <input type="hidden" name="file" value="<%= fullPath %>">
+                    <button type="submit" data-action="duplicate" title="<%= t('server.files.duplicate') %>"></button>
+                  </form>
+                  <% if (!f.isDirectory) { %>
+                  <a data-action="download" title="<%= t('server.files.download') %>" href="/server/<%= server.id %>/files/download?path=<%= encodeURIComponent(fullPath) %>"></a>
+                  <% } %>
+                  <form method="POST" action="/server/<%= server.id %>/files/delete" data-confirm="<%= f.isDirectory ? t('server.files.deleteFolderConfirm') : t('server.files.deleteFileConfirm') %>">
+                    <input type="hidden" name="file" value="<%= fullPath %>">
+                    <input type="hidden" name="dir" value="<%= currentPath %>">
+                    <button type="submit" data-action="delete" title="<%= t('common.delete') %>"></button>
+                  </form>
+                </div>
+              </td>
+              <td class="file-col-size" style="font-size:12px;color:var(--text-muted)"><%= f.isDirectory ? t('common.dash') : (f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : f.size > 1024 ? (f.size/1024).toFixed(1)+' KB' : f.size+' B') %></td>
+              <td class="file-col-modified" style="font-size:12px;color:var(--text-muted)"><%= f.modified ? new Date(f.modified).toLocaleDateString() : t('common.dash') %></td>
+            </tr>
+          <% }) %>
+          <% if (files.length === 0) { %>
+            <tr><td colspan="4" style="text-align:center;padding:32px;color:var(--text-muted)"><%= t('server.files.empty') %></td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="new-folder-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.files.newFolder') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/files/mkdir">
+      <input type="hidden" name="dir" value="<%= currentPath %>">
+      <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" required autofocus></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="new-file-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.files.newFile') %></h3>
+    <form method="GET" action="/server/<%= server.id %>/files/edit" id="new-file-form">
+      <input type="hidden" name="path" value="<%= currentPath === '/' ? '/' : currentPath + '/' %>">
+      <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="newfile" required autofocus></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.create') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rename-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.files.rename') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/files/rename">
+      <input type="hidden" name="file" id="rename-file">
+      <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" id="rename-name" required autofocus></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.save') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="move-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.files.move') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/files/move">
+      <input type="hidden" name="file" id="move-file">
+      <div id="move-files"></div>
+      <div class="form-group"><label><%= t('server.files.moveTo') %></label><input type="text" name="toDir" id="move-dest" placeholder="/" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.save') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="permissions-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.files.permissions') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/files/permissions">
+      <input type="hidden" name="file" id="perm-file">
+      <div class="form-group"><label><%= t('server.files.mode') %></label><input type="text" name="mode" id="perm-mode" value="644" pattern="[0-7]{3,4}" required></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.save') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="upload-progress">
+  <span class="spinner"></span>
+  <span class="progress-text">0%</span>
+</div>
+
+<div class="file-action-bar" id="file-action-bar" hidden>
+  <span class="file-action-count" id="file-action-count"></span>
+  <button type="button" class="file-action-btn" data-bulk="move">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+    <%= t('server.files.move') %>
+  </button>
+  <button type="button" class="file-action-btn" data-bulk="archive">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+    <%= t('server.files.archive') %>
+  </button>
+  <button type="button" class="file-action-btn file-action-danger" data-bulk="delete">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    <%= t('common.delete') %>
+  </button>
+</div>
+
+<div class="row-menu-dropdown context-menu" id="file-context-menu">
+  <button type="button" class="row-menu-item" data-menu-action="rename">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <%= t('server.files.rename') %>
+  </button>
+  <button type="button" class="row-menu-item" data-menu-action="move">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+    <%= t('server.files.move') %>
+  </button>
+  <button type="button" class="row-menu-item" data-menu-action="permissions">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    <%= t('server.files.permissions') %>
+  </button>
+  <button type="button" class="row-menu-item" data-menu-action="archive">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+    <%= t('server.files.archive') %>
+  </button>
+  <button type="button" class="row-menu-item" data-menu-action="unarchive">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-9"/><path d="M15.17 2.21a1.67 1.67 0 0 1 1.63 0L21 4.57a1.93 1.93 0 0 1 0 3.36L8.82 14.79a1.655 1.655 0 0 1-1.64 0L3 12.43a1.93 1.93 0 0 1 0-3.36z"/><path d="M20 13v3.87a2.06 2.06 0 0 1-1.11 1.83l-6 3.08a1.93 1.93 0 0 1-1.78 0l-6-3.08A2.06 2.06 0 0 1 4 16.87V13"/><path d="M21 12.43a1.93 1.93 0 0 0 0-3.36L8.83 2.2a1.64 1.64 0 0 0-1.63 0L3 4.57a1.93 1.93 0 0 0 0 3.36l12.18 6.86a1.636 1.636 0 0 0 1.63 0z"/></svg>
+    <%= t('server.files.unarchive') %>
+  </button>
+  <button type="button" class="row-menu-item" data-menu-action="duplicate">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+    <%= t('server.files.duplicate') %>
+  </button>
+  <button type="button" class="row-menu-item" data-menu-action="download">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <%= t('server.files.download') %>
+  </button>
+  <button type="button" class="row-menu-item row-menu-item-danger" data-menu-action="delete">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    <%= t('common.delete') %>
+  </button>
+</div>
+
+<script>
+(function () {
+  var serverId = <%= server.id %>;
+  var currentDir = '<%= currentPath %>';
+  var selectAll = document.getElementById('select-all');
+  var fileChecks = Array.prototype.slice.call(document.querySelectorAll('.file-check'));
+
+  function rebindFileChecks() {
+    fileChecks = Array.prototype.slice.call(document.querySelectorAll('.file-check'));
+    if (selectAll) {
+      selectAll.onchange = function () {
+        fileChecks.forEach(function (c) { c.checked = selectAll.checked; });
+        updateSelectAll();
+        updateActionBar();
+      };
+    }
+    fileChecks.forEach(function (c) {
+      c.onchange = function () {
+        updateSelectAll();
+        updateActionBar();
+      };
+    });
+  }
+
+  rebindFileChecks();
+  function updateSelectAll() {
+    if (!selectAll) return;
+    var checked = fileChecks.filter(function (c) { return c.checked; }).length;
+    selectAll.checked = checked === fileChecks.length && fileChecks.length > 0;
+    selectAll.indeterminate = checked > 0 && checked < fileChecks.length;
+  }
+
+  var actionBar = document.getElementById('file-action-bar');
+  var actionCount = document.getElementById('file-action-count');
+  var actionMoveBtn = actionBar && actionBar.querySelector('[data-bulk="move"]');
+  var actionArchiveBtn = actionBar && actionBar.querySelector('[data-bulk="archive"]');
+  var actionDeleteBtn = actionBar && actionBar.querySelector('[data-bulk="delete"]');
+
+  function selectedChecks() {
+    return fileChecks.filter(function (c) { return c.checked; });
+  }
+  function selectedPaths() {
+    return selectedChecks().map(function (c) {
+      var el = c.closest('tr').querySelector('[data-action="move"]');
+      return el ? el.getAttribute('data-file') : null;
+    }).filter(Boolean);
+  }
+  function updateActionBar() {
+    if (!actionBar) return;
+    var n = selectedChecks().length;
+    if (n > 0) {
+      actionCount.textContent = window.t('server.files.selectedCount', { count: n });
+      if (actionHideTimer) { clearTimeout(actionHideTimer); actionHideTimer = null; }
+      actionBar.hidden = false;
+      void actionBar.offsetHeight;
+      actionBar.classList.add('show');
+    } else {
+      if (!actionBar.classList.contains('show')) return;
+      actionBar.classList.remove('show');
+      actionHideTimer = setTimeout(function () {
+        actionBar.hidden = true;
+        actionHideTimer = null;
+      }, 220);
+    }
+  }
+  var actionHideTimer = null;
+  function postFilesSubmit(url, paths, extraData) {
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.style.display = 'none';
+    paths.forEach(function (p) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'files';
+      input.value = p;
+      form.appendChild(input);
+    });
+    if (extraData) {
+      Object.keys(extraData).forEach(function (k) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = k;
+        input.value = extraData[k];
+        form.appendChild(input);
+      });
+    }
+    document.body.appendChild(form);
+    form.submit();
+  }
+  if (actionArchiveBtn) {
+    actionArchiveBtn.addEventListener('click', function () {
+      var paths = selectedPaths();
+      if (paths.length) postFilesSubmit('/server/' + serverId + '/files/archive', paths);
+    });
+  }
+  if (actionMoveBtn) {
+    actionMoveBtn.addEventListener('click', function () {
+      var paths = selectedPaths();
+      if (!paths.length) return;
+      var holder = document.getElementById('move-files');
+      holder.innerHTML = '';
+      paths.forEach(function (p) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'files';
+        input.value = p;
+        holder.appendChild(input);
+      });
+      document.getElementById('move-file').value = '';
+      document.getElementById('move-dest').value = currentDir === '/' ? '/' : currentDir;
+      document.getElementById('move-modal').classList.add('active');
+    });
+  }
+  if (actionDeleteBtn) {
+    actionDeleteBtn.addEventListener('click', function () {
+      var paths = selectedPaths();
+      if (!paths.length) return;
+      window.pyloxConfirm(window.t('server.files.deleteSelected', { count: paths.length }), function () {
+        postFilesSubmit('/server/' + serverId + '/files/delete', paths, { dir: currentDir });
+      });
+    });
+  }
+
+  var uploadInput = document.getElementById('file-upload-input');
+  var uploadBtn = document.getElementById('file-upload-btn');
+  var progressBar = document.getElementById('upload-progress');
+  var progressText = progressBar.querySelector('.progress-text');
+
+  function showProgress(visible, pct) {
+    if (visible) {
+      progressBar.classList.add('visible');
+      if (pct !== undefined && pct !== null) progressText.textContent = Math.round(pct) + '%';
+    } else {
+      progressBar.classList.remove('visible');
+    }
+  }
+
+  if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', function () { uploadInput.click(); });
+    uploadInput.addEventListener('change', function () {
+      if (!uploadInput.files.length) return;
+      var form = new FormData();
+      form.append('dir', currentDir);
+      for (var i = 0; i < uploadInput.files.length; i++) form.append('files', uploadInput.files[i]);
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', '/server/' + serverId + '/files/upload');
+      showProgress(true, 0);
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) showProgress(true, e.loaded / e.total * 100);
+      };
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 400) {
+          showProgress(true, 100);
+          window.location.reload();
+        } else {
+          showProgress(false);
+        }
+      };
+      xhr.onerror = function () { showProgress(false); };
+      xhr.send(form);
+      uploadInput.value = '';
+    });
+  }
+
+    attachRowActions();
+
+  // Handle breadcrumb folder navigation without page reload
+  function navigateToDir(dir) {
+    var url = '/server/' + serverId + '/files?dir=' + encodeURIComponent(dir);
+    history.pushState({ mode: 'files', dir: dir }, '', url);
+    fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+      .then(function(res) { return res.text(); })
+      .then(function(html) {
+        var parser = new DOMParser();
+        var doc = parser.parseFromString(html, 'text/html');
+        var newTableBody = doc.querySelector('.files-table tbody');
+        var newBreadcrumb = doc.querySelector('div[style*="gap:6px;background:var(--surface)"]');
+        var newBackLink = doc.querySelector('a[href*="/files?dir="][style*="margin-bottom:12px"]');
+        if (newTableBody && document.querySelector('.files-table tbody')) {
+          document.querySelector('.files-table tbody').innerHTML = newTableBody.innerHTML;
+        }
+        if (newBreadcrumb) {
+          var oldBreadcrumb = document.querySelector('div[style*="gap:6px;background:var(--surface)"]');
+          if (oldBreadcrumb) oldBreadcrumb.innerHTML = newBreadcrumb.innerHTML;
+        }
+        if (newBackLink) {
+          var oldBackLink = document.querySelector('a[href*="/files?dir="][style*="margin-bottom:12px"]');
+          if (oldBackLink) oldBackLink.outerHTML = newBackLink.outerHTML;
+        } else {
+          var oldBackLink = document.querySelector('a[href*="/files?dir="][style*="margin-bottom:12px"]');
+          if (oldBackLink) oldBackLink.remove();
+        }
+        currentDir = dir;
+        rebindFileChecks();
+        updateSelectAll();
+        updateActionBar();
+        attachNavigateHandlers();
+        attachRowActions();
+      });
+  }
+
+  function updateActionBarAndSelectAll() {
+    updateSelectAll();
+    updateActionBar();
+  }
+
+  function attachNavigateHandlers() {
+    document.querySelectorAll('[data-navigate-folder]').forEach(function(link) {
+      link.onclick = function(e) {
+        e.preventDefault();
+        var href = link.getAttribute('href');
+        var url = new URL(href, window.location.origin);
+        var dir = url.searchParams.get('dir');
+        if (dir !== null) {
+          navigateToDir(dir);
+          return;
+        }
+      };
+    });
+  }
+
+  function attachRowActions() {
+    document.querySelectorAll('[data-action]').forEach(function (btn) {
+      btn.onclick = function(e) {
+        var action = btn.getAttribute('data-action');
+        var file = btn.getAttribute('data-file') || '';
+        if (action === 'rename') {
+          document.getElementById('rename-file').value = file;
+          document.getElementById('rename-name').value = btn.getAttribute('data-name') || '';
+          document.getElementById('rename-modal').classList.add('active');
+        } else if (action === 'move') {
+          document.getElementById('move-files').innerHTML = '';
+          document.getElementById('move-file').value = file;
+          document.getElementById('move-dest').value = currentDir === '/' ? '/' : currentDir;
+          document.getElementById('move-modal').classList.add('active');
+        } else if (action === 'permissions') {
+          document.getElementById('perm-file').value = file;
+          document.getElementById('permissions-modal').classList.add('active');
+        }
+      };
+    });
+  }
+
+  attachNavigateHandlers();
+
+  var newFileForm = document.getElementById('new-file-form');
+  if (newFileForm) {
+    newFileForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var nameInput = newFileForm.querySelector('input[name="newfile"]');
+      var name = nameInput ? nameInput.value.trim() : '';
+      if (!name) return;
+      var base = currentDir === '/' ? '/' : currentDir + '/';
+      var editUrl = '/server/' + serverId + '/files/edit?path=' + encodeURIComponent(base) + '&newfile=' + encodeURIComponent(name);
+      if (window.pyloxSectionNavigate) window.pyloxSectionNavigate(editUrl);
+    });
+  }
+
+  var contextMenu = document.getElementById('file-context-menu');
+  var contextRow = null;
+  if (contextMenu) {
+    function closeContextMenu() { contextMenu.classList.remove('open'); }
+
+    document.querySelectorAll('.file-row').forEach(function (row) {
+      row.addEventListener('contextmenu', function (e) {
+        e.preventDefault();
+        contextRow = row;
+        var downloadItem = contextMenu.querySelector('[data-menu-action="download"]');
+        if (downloadItem) downloadItem.style.display = row.querySelector('[data-action="download"]') ? '' : 'none';
+        var unarchiveItem = contextMenu.querySelector('[data-menu-action="unarchive"]');
+        if (unarchiveItem) unarchiveItem.style.display = row.querySelector('[data-action="unarchive"]') ? '' : 'none';
+        contextMenu.classList.add('open');
+        var menuW = contextMenu.offsetWidth;
+        var menuH = contextMenu.offsetHeight;
+        var x = e.clientX;
+        var y = e.clientY;
+        if (x + menuW > window.innerWidth - 8) x = window.innerWidth - menuW - 8;
+        if (y + menuH > window.innerHeight - 8) y = window.innerHeight - menuH - 8;
+        contextMenu.style.left = Math.max(8, x) + 'px';
+        contextMenu.style.top = Math.max(8, y) + 'px';
+      });
+    });
+
+    contextMenu.querySelectorAll('[data-menu-action]').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var action = item.getAttribute('data-menu-action');
+        var row = contextRow;
+        closeContextMenu();
+        if (!row) return;
+        var target = row.querySelector('[data-action="' + action + '"]');
+        if (target) target.click();
+      });
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!contextMenu.contains(e.target)) closeContextMenu();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeContextMenu();
+    });
+    window.addEventListener('scroll', closeContextMenu, true);
+    window.addEventListener('resize', closeContextMenu);
+  }
+})();
+</script>
+</div>
+</body></html>
+
+

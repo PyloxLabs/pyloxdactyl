@@ -1,0 +1,133 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<%
+var __perms = (typeof serverPermissions === 'undefined') ? null : serverPermissions;
+function __can(perm) { return __perms === null || __perms === undefined || __perms.indexOf(perm) !== -1; }
+var __primaryId = Number(server.allocation_id) || -1;
+%>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.network') %></span>
+    </div>
+    <%- include('_tabs', { active: 'network' }) %>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px">
+      <h3 style="font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span><%= t('server.network.countLabel', { count: allocations.length }) %></span>
+        <% if (allocationLimit > 0) { %>
+          <span class="badge badge-blue"><%= t('server.network.limitLabel', { limit: allocationLimit }) %></span>
+        <% } else { %>
+          <span class="badge badge-blue" title="<%= t('server.network.unlimited') %>" aria-label="<%= t('server.network.unlimited') %>">
+            <svg width="18" height="12" viewBox="0 0 32 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7a5 5 0 1 0 10 0 5 5 0 1 0-10 0"/><path d="M16 7a5 5 0 1 0 10 0 5 5 0 1 0-10 0"/></svg>
+          </span>
+        <% } %>
+      </h3>
+      <% if (__can('network.create')) { %>
+        <% if (canAdd) { %>
+          <button type="button" onclick="var o=document.getElementById('add-allocation-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); }); }" class="btn btn-primary btn-sm"><%= t('server.network.addButton') %></button>
+        <% } else { %>
+          <span class="badge badge-yellow"><%= t('server.network.limitReached') %></span>
+        <% } %>
+      <% } %>
+    </div>
+    <% if (error) { %>
+      <div class="alert alert-error" style="margin:0 0 16px">
+        <% if (error === 'limit') { %><%= t('server.network.errorLimit') %>
+        <% } else if (error === 'primary') { %><%= t('server.network.errorPrimary') %>
+        <% } else if (error === 'nofree') { %><%= t('server.network.errorNoFree') %>
+        <% } else { %><%= t('server.network.errorInvalid') %><% } %>
+      </div>
+    <% } %>
+    <% if (warning === 'sync') { %>
+      <div class="alert alert-error" style="margin:0 0 16px"><%= t('server.network.errorSync') %></div>
+    <% } %>
+    <% if (success === 'added') { %>
+      <div class="alert alert-success" style="margin:0 0 16px"><%= t('server.network.added') %></div>
+    <% } %>
+    <% if (success === 'primary') { %>
+      <div class="alert alert-success" style="margin:0 0 16px"><%= t('server.network.primarySuccess') %></div>
+    <% } %>
+    <% if (success === 'deleted') { %>
+      <div class="alert alert-success" style="margin:0 0 16px"><%= t('server.network.deleted') %></div>
+    <% } %>
+    <p style="font-size:12px;color:var(--text-muted);margin:-6px 0 14px;line-height:1.6"><%= t('server.network.hint') %></p>
+    <% if (allocations.length === 0) { %>
+      <div class="empty"><h3><%= t('server.network.emptyTitle') %></h3><p><%= t('server.network.emptyText') %></p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th><%= t('common.allocation') %></th>
+              <th><%= t('server.network.role') %></th>
+              <th><%= t('common.node') %></th>
+              <th><%= t('common.actions') %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% allocations.forEach(a => { %>
+              <tr>
+                <td><code><%= a.ip %>:<%= a.port %></code></td>
+                <td>
+                  <% if (Number(a.id) === __primaryId) { %>
+                    <span class="badge badge-purple"><%= t('server.network.primary') %></span>
+                  <% } else { %>
+                    <span class="badge badge-gray"><%= t('server.network.additional') %></span>
+                  <% } %>
+                </td>
+                <td><%= a.node_name || t('common.na') %></td>
+                <td>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap">
+                    <% if (Number(a.id) !== __primaryId && __can('network.create')) { %>
+                      <form method="POST" action="/server/<%= server.id %>/network/primary" style="display:inline" data-confirm="<%= t('server.network.primaryConfirm') %>">
+                        <input type="hidden" name="allocation_id" value="<%= a.id %>">
+                        <button class="btn btn-ghost btn-sm"><%= t('server.network.primaryButton') %></button>
+                      </form>
+                    <% } %>
+                    <% if (Number(a.id) !== __primaryId && __can('network.delete')) { %>
+                      <form method="POST" action="/server/<%= server.id %>/network/delete" style="display:inline" data-confirm="<%= t('server.network.deleteConfirm') %>">
+                        <input type="hidden" name="allocation_id" value="<%= a.id %>">
+                        <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                      </form>
+                    <% } %>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+<% if (__can('network.create') && canAdd) { %>
+<div class="modal-overlay" id="add-allocation-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('server.network.addTitle') %></h3>
+    <% if (freeAllocations.length === 0) { %>
+      <div class="alert alert-error" style="margin-top:14px"><%= t('server.network.errorNoFree') %></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+      </div>
+    <% } else { %>
+      <p style="color:var(--text-muted);font-size:13px;line-height:1.6;margin-top:10px">
+        <% if (autoAssignIp) { %><%= t('server.network.autoAssignIp', { ip: autoAssignIp }) %><% } else { %><%= t('server.network.autoAssign') %><% } %>
+      </p>
+      <form method="POST" action="/server/<%= server.id %>/network/add">
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+          <button type="submit" class="btn btn-primary"><%= t('server.network.addButton') %></button>
+        </div>
+      </form>
+    <% } %>
+  </div>
+</div>
+<% } %>
+</div>
+</body></html>

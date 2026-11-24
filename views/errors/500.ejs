@@ -1,0 +1,17 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<% var e500Title = t('errors.internalServerError.title') || 'Internal Server Error'; %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="empty error-page error-page-500">
+      <div class="error-code" aria-hidden="true">500</div>
+      <h3><%= e500Title.replace(/^\s*\d{3}\s*[-–—:]\s*/, '') %></h3>
+      <p><%= t('errors.internalServerError.message') || 'Something went wrong. Please try again.' %></p>
+      <div class="error-actions">
+        <button type="button" class="btn btn-ghost" onclick="history.back()"><%= t('common.back') %></button>
+        <a href="/" class="btn btn-primary"><%= t('common.goHome') || 'Go Home' %></a>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

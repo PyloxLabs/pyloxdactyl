@@ -1,0 +1,95 @@
+﻿<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.apiKeys.title') %></h1><p><%= t('admin.apiKeys.subtitle') %></p></div>
+    <%- include('_tabs') %>
+
+    <% if (token) { %>
+      <div class="alert alert-success" style="margin:20px 0 0">
+        <strong><%= t('admin.apiKeys.createdTitle') %></strong> <%= t('admin.apiKeys.createdPrefix') %>
+        <code style="background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px"><%= token %></code><br>
+        <span style="font-size:12px"><%= t('admin.apiKeys.copyWarning') %></span>
+      </div>
+    <% } %>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 16px">
+      <form method="GET" action="/admin/api-keys" style="display:flex;gap:8px">
+        <input type="text" name="search" value="<%= search %>" placeholder="<%= t('admin.apiKeys.searchPlaceholder') %>" style="padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none;width:280px">
+        <button class="btn btn-ghost btn-sm"><%= t('common.search') %></button>
+      </form>
+      <button onclick="var o=document.getElementById('create-key-modal'); if(o){ o.classList.remove('closing'); requestAnimationFrame(function(){ o.classList.add('active'); }); }" class="btn btn-primary btn-sm"><%= t('admin.apiKeys.createTitle') %></button>
+    </div>
+
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th><%= t('common.id') %></th><th><%= t('admin.apiKeys.userHeader') %></th><th><%= t('admin.apiKeys.memoHeader') %></th><th><%= t('admin.apiKeys.keyHeader') %></th><th><%= t('admin.apiKeys.lastUsedHeader') %></th><th><%= t('admin.apiKeys.createdHeader') %></th><th><%= t('common.actions') %></th></tr></thead>
+        <tbody>
+          <% if (apiKeys.length === 0) { %>
+            <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-size:13px"><%= t('admin.apiKeys.empty') %></td></tr>
+          <% } %>
+          <% apiKeys.forEach(k => { %>
+            <tr>
+              <td><%= k.id %></td>
+              <td>
+                <% if (k.user_id) { %>
+                  <a href="/admin/users/<%= k.user_id %>" style="color:var(--accent)"><%= k.username || t('admin.apiKeys.unknownUser') %></a>
+                <% } else { %>
+                  <span style="color:var(--text-muted)"><%= t('admin.apiKeys.unknownUser') %></span>
+                <% } %>
+              </td>
+              <td><%= k.memo || t('admin.apiKeys.noMemo') %></td>
+              <td>
+                <code class="api-key-token" data-full="<%= k.token %>" style="font-size:12px;cursor:pointer" title="<%= t('admin.apiKeys.revealHint') %>"><%= k.token.slice(0, 8) %>&hellip;<%= k.token.slice(-6) %></code>
+              </td>
+              <td style="font-size:12px;color:var(--text-muted)"><%= k.last_used_at ? new Date(k.last_used_at).toLocaleString() : t('admin.apiKeys.never') %></td>
+              <td style="font-size:12px;color:var(--text-muted)"><%= new Date(k.created_at).toLocaleString() %></td>
+              <td>
+                <form method="POST" action="/admin/api-keys/<%= k.id %>/delete" data-confirm="<%= t('admin.apiKeys.deleteConfirm') %>"><button class="btn btn-danger btn-sm"><%= t('common.delete') %></button></form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="create-key-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
+    <h3><%= t('admin.apiKeys.createTitle') %></h3>
+    <form method="POST" action="/admin/api-keys/create">
+      <div class="form-group"><label><%= t('admin.apiKeys.userHeader') %></label>
+        <select name="user_id" required>
+          <option value="">&mdash;</option>
+          <% users.forEach(u => { %><option value="<%= u.id %>"><%= u.username %> (<%= u.email %>)</option><% }) %>
+        </select>
+      </div>
+      <div class="form-group"><label><%= t('admin.apiKeys.memoHeader') %></label><input type="text" name="memo" placeholder="<%= t('admin.apiKeys.memoPlaceholder') %>"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('admin.apiKeys.createKey') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('.api-key-token').forEach(el => {
+  el.addEventListener('click', () => {
+    const full = el.getAttribute('data-full');
+    if (el.dataset.revealed === '1') {
+      el.textContent = el.dataset.masked;
+      el.dataset.revealed = '0';
+    } else {
+      if (!el.dataset.masked) el.dataset.masked = el.textContent;
+      el.textContent = full;
+      el.dataset.revealed = '1';
+    }
+  });
+});
+</script>
+</body></html>
+
+

@@ -1,0 +1,40 @@
+<%- include('../partials/head') %>
+<body>
+<%- include('../partials/auth-theme-toggle') %>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-side">
+      <div class="logo">
+        <img src="<%= pageLogo %>" alt="<%= siteName %>" style="object-fit:contain;border-radius:8px">
+        <span><%= siteName %></span>
+      </div>
+      <h2><%= t('auth.reset.title') %></h2>
+      <p class="subtitle"><%= t('auth.reset.subtitle') %></p>
+    </div>
+    <div class="auth-main">
+      <% if (success) { %>
+        <div class="alert alert-success"><%= t('auth.reset.success') %></div>
+        <p class="switch"><a href="/auth/login"><%= t('auth.reset.loginNow') %></a></p>
+      <% } else { %>
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+        <% if (valid && token) { %>
+          <form method="POST" action="/auth/reset-password">
+            <input type="hidden" name="token" value="<%= token %>">
+            <div class="form-group">
+              <label><%= t('auth.reset.passwordLabel') %></label>
+              <input type="password" name="password" placeholder="••••••••" required autofocus>
+            </div>
+            <div class="form-group">
+              <label><%= t('auth.reset.confirmPassword') %></label>
+              <input type="password" name="password_confirm" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%"><%= t('auth.reset.submit') %></button>
+          </form>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body></html>

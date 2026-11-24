@@ -1,0 +1,48 @@
+<%- include('../partials/head') %>
+<body>
+<%- include('../partials/auth-theme-toggle') %>
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-side">
+      <div class="logo">
+        <img src="/static/img/Pylox_no_bg.png" alt="<%= siteName %>" style="object-fit:contain;border-radius:8px">
+        <span><%= siteName %></span>
+      </div>
+      <h2><%= require2fa ? t('auth.login.title2fa') : t('auth.login.title') %></h2>
+      <p class="subtitle"><%= require2fa ? t('auth.login.subtitle2fa') : t('auth.login.subtitle') %></p>
+    </div>
+    <div class="auth-main">
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <% if (require2fa) { %>
+      <form method="POST" action="/auth/login">
+        <div class="form-group">
+          <label for="totp"><%= t('auth.login.codeLabel') %></label>
+          <input type="text" id="totp" name="totp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="<%= t('common.otpPlaceholder') %>" autocomplete="one-time-code" required autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%"><%= t('auth.login.verify') %></button>
+      </form>
+      <p class="switch"><a href="/auth/logout"><%= t('auth.login.backToSignIn') %></a></p>
+      <% } else { %>
+      <form method="POST" action="/auth/login">
+        <div class="form-group">
+          <label><%= t('auth.login.emailOrUsername') %></label>
+          <input type="text" name="email" placeholder="<%= t('auth.login.emailPlaceholder') %>" required autofocus>
+        </div>
+        <div class="form-group">
+          <div class="label-row">
+            <label for="password"><%= t('common.password') %></label>
+            <a href="/auth/forgot-password"><%= t('auth.login.forgotPassword') %></a>
+          </div>
+          <input type="password" id="password" name="password" placeholder="<%= t('common.passwordPlaceholder') %>" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%"><%= t('auth.login.title') %></button>
+      </form>
+      <%- extensionHook('auth.login.buttons') %>
+      <p class="switch"><%= t('auth.login.noAccount') %> <a href="/auth/register"><%= t('auth.login.createOne') %></a></p>
+      <% } %>
+    </div>
+  </div>
+</div>
+</body></html>

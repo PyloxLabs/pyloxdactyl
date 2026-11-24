@@ -1,0 +1,165 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="server-shell">
+<div class="main-content">
+  <div class="page-wrapper">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px">
+      <a href="/dashboard" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= t('common.dashboard') %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <a href="/server/<%= server.id %>" style="color:var(--text-muted);font-size:14px;text-decoration:none"><%= server.name %></a>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-muted)"><polyline points="9 18 15 12 9 6"/></svg>
+      <span style="font-size:14px;font-weight:600"><%= t('server.tabs.users') %></span>
+    </div>
+    <%- include('_tabs', { active: 'users' }) %>
+    <% if (error) { %>
+      <div class="alert alert-error" style="margin:0 0 16px"><%= t('server.users.err.' + error) %></div>
+    <% } %>
+    <% if (notice) { %>
+      <div class="alert alert-success" style="margin:0 0 16px"><%= t('server.users.notice.' + notice) %></div>
+    <% } %>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h3 style="font-size:16px"><%= t('server.users.title') %></h3>
+        <p style="font-size:13px;color:var(--text-muted);margin-top:4px;max-width:640px"><%= t('server.users.subtitle') %></p>
+      </div>
+      <button type="button" onclick="openModal('add-user-modal')" class="btn btn-primary btn-sm"><%= t('server.users.addUser') %></button>
+    </div>
+    <% if (subusers.length === 0) { %>
+      <div class="empty"><h3><%= t('server.users.emptyTitle') %></h3><p><%= t('server.users.emptyText') %></p></div>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th><%= t('server.users.colUser') %></th><th><%= t('server.users.colEmail') %></th><th><%= t('server.users.colPermissions') %></th><th><%= t('common.actions') %></th></tr></thead>
+          <tbody>
+            <% subusers.forEach(function(su) { %>
+              <tr>
+                <td style="font-weight:600"><%= su.username %></td>
+                <td style="color:var(--text-muted)"><%= su.email %></td>
+                <td>
+                  <% permissionGroups.forEach(function(group) { %>
+                    <% var granted = group.perms.some(function(p) { return su.permissions.indexOf(p.key) !== -1; }); %>
+                    <% if (granted) { %><span class="badge badge-blue" style="margin:2px 4px 2px 0"><%= t('server.users.groups.' + group.id) %></span><% } %>
+                  <% }) %>
+                  <% if (su.permissions.length === 0) { %><span style="color:var(--text-muted);font-size:13px"><%= t('server.users.noPermissions') %></span><% } %>
+                </td>
+                <td style="white-space:nowrap">
+                  <button type="button" class="btn btn-ghost btn-sm" onclick="openEditUser(this)" data-sub-id="<%= su.id %>" data-username="<%= su.username %>" data-permissions="<%= JSON.stringify(su.permissions) %>"><%= t('common.edit') %></button>
+                  <form method="POST" action="/server/<%= server.id %>/users/<%= su.id %>/delete" style="display:inline" data-confirm="<%= t('server.users.removeConfirm') %>">
+                    <button class="btn btn-danger btn-sm"><%= t('common.delete') %></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<div class="modal-overlay" id="add-user-modal">
+  <div class="modal modal-lg">
+    <button class="modal-close" onclick="closeModal(this)">&times;</button>
+    <h3><%= t('server.users.addTitle') %></h3>
+    <form method="POST" action="/server/<%= server.id %>/users/grant">
+      <div class="form-group">
+        <label><%= t('server.users.emailLabel') %></label>
+        <input type="email" name="email" placeholder="<%= t('server.users.emailPlaceholder') %>" required>
+      </div>
+      <div class="form-group">
+        <label><%= t('server.users.permissionsTitle') %></label>
+        <%- include('_permission_fields') %>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal(this)"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('server.users.grantButton') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="edit-user-modal">
+  <div class="modal modal-lg">
+    <button class="modal-close" onclick="closeModal(this)">&times;</button>
+    <h3><%= t('server.users.editTitle') %> <span id="edit-user-name"></span></h3>
+    <form method="POST" action="" id="edit-user-form">
+      <div class="form-group">
+        <label><%= t('server.users.permissionsTitle') %></label>
+        <%- include('_permission_fields') %>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" onclick="closeModal(this)"><%= t('common.cancel') %></button>
+        <button type="submit" class="btn btn-primary"><%= t('common.save') %></button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+(function () {
+  window.openModal = function (id) {
+    var o = document.getElementById(id);
+    if (!o) return;
+    o.classList.remove('closing');
+    requestAnimationFrame(function () { o.classList.add('active'); });
+  };
+  window.closeModal = function (btn) {
+    var o = btn.closest ? btn.closest('.modal-overlay') : null;
+    if (!o) return;
+    o.classList.add('closing');
+    setTimeout(function () { o.classList.remove('active'); o.classList.remove('closing'); }, 300);
+  };
+
+  function syncGroup(scope, group) {
+    var members = scope.querySelectorAll('input[name="permissions"][data-group="' + group + '"]');
+    var all = members.length > 0;
+    Array.prototype.forEach.call(members, function (m) { if (!m.checked) all = false; });
+    var toggle = scope.querySelector('input[data-perm-group="' + group + '"]');
+    if (toggle) toggle.checked = all;
+  }
+
+  function setupFieldGroup(scope) {
+    if (!scope || scope.getAttribute('data-perm-init') === '1') return;
+    scope.setAttribute('data-perm-init', '1');
+    Array.prototype.forEach.call(scope.querySelectorAll('input[data-perm-group]'), function (toggle) {
+      toggle.addEventListener('change', function () {
+        var group = toggle.getAttribute('data-perm-group');
+        var members = scope.querySelectorAll('input[name="permissions"][data-group="' + group + '"]');
+        Array.prototype.forEach.call(members, function (m) { m.checked = toggle.checked; });
+      });
+    });
+    Array.prototype.forEach.call(scope.querySelectorAll('input[name="permissions"]'), function (box) {
+      box.addEventListener('change', function () { syncGroup(scope, box.getAttribute('data-group')); });
+    });
+  }
+
+  window.openEditUser = function (btn) {
+    var modal = document.getElementById('edit-user-modal');
+    var form = document.getElementById('edit-user-form');
+    if (!modal || !form) return;
+    var subId = btn.getAttribute('data-sub-id');
+    var username = btn.getAttribute('data-username') || '';
+    var selected = [];
+    try { selected = JSON.parse(btn.getAttribute('data-permissions') || '[]'); } catch (e) { selected = []; }
+
+    form.setAttribute('action', '/server/<%= server.id %>/users/' + subId + '/update');
+    var nameEl = document.getElementById('edit-user-name');
+    if (nameEl) nameEl.textContent = username;
+
+    Array.prototype.forEach.call(modal.querySelectorAll('input[name="permissions"]'), function (box) {
+      box.checked = selected.indexOf(box.value) !== -1;
+    });
+    Array.prototype.forEach.call(modal.querySelectorAll('input[data-perm-group]'), function (toggle) {
+      syncGroup(modal, toggle.getAttribute('data-perm-group'));
+    });
+    var name = modal.querySelector('input[name="permissions"]');
+    var scope = name ? name.closest('.modal') : modal;
+    setupFieldGroup(scope);
+    window.openModal('edit-user-modal');
+  };
+
+  var addModal = document.getElementById('add-user-modal');
+  if (addModal) setupFieldGroup(addModal);
+})();
+</script>
+</div>
+</body></html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pyloxdactyl Extensions Development Guide</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;margin:0;padding:0;background:#0f172a;color:#e2e8f0}
+header{background:linear-gradient(135deg,#1e293b,#0f172a);padding:2rem;border-bottom:1px solid #334155}
+.container{max-width:1100px;margin:0 auto;padding:2rem}
+img.logo{height:60px;margin-bottom:1rem}
+h1{margin:0 0 .5rem 0}
+h2{margin-top:2rem;color:#60a5fa;border-bottom:1px solid #334155;padding-bottom:.5rem}
+h3{color:#38bdf8;margin-top:1.5rem}
+pre,code{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:.2rem .4rem;font-family:ui-monospace,monospace;font-size:.9rem}
+pre{padding:1rem;overflow:auto}
+table{width:100%;border-collapse:collapse;margin:1rem 0}
+th,td{border:1px solid #334155;padding:.75rem;text-align:left}
+th{background:#1e293b}
+.alert{background:rgba(96,165,250,.15);border:1px solid rgba(96,165,250,.45);padding:1rem;border-radius:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="container">
+    <img src="public/img/Pylox_no_bg.png" class="logo" alt="Pyloxdactyl Logo">
+    <h1>Pyloxdactyl Extensions Development Guide</h1>
+    <p>Build, package and distribute extensions for the Pyloxdactyl panel.</p>
+  </div>
+</header>
+<div class="container">
+<h2>Overview</h2>
+<p>Pyloxdactyl supports installable extensions. Each extension is a <code>.zip</code> containing a manifest (<code>pylox-extension.json</code>) and an entry file. The extension manager loads enabled extensions at startup, exposes hooks and auth providers, and mounts routes.</p>
+
+<h2>Directory Layout</h2>
+<pre>
+data/extensions/&lt;id&gt;/
+  +-- pylox-extension.json
+  +-- index.js
+  +-- icon.svg (optional)
+  +-- assets/ (optional)
+</pre>
+
+<h2>Manifest</h2>
+<p><code>pylox-extension.json</code></p>
+<pre>{
+  "id": "example",
+  "name": "Example Extension",
+  "version": "1.0.0",
+  "author": "Author Name",
+  "description": "Short description",
+  "main": "index.js",
+  "icon": "icon.svg",
+  "defaultEnabled": true,
+  "settings": [
+    { "key": "enabled", "label": "Enable something", "type": "boolean" },
+    { "key": "api_key", "label": "API Key", "type": "password" },
+    { "key": "endpoint", "label": "Endpoint", "type": "text" },
+    { "key": "mode", "label": "Mode", "type": "select", "options": ["a","b"] }
+  ]
+}</pre>
+<ul>
+<li><strong>id</strong>: alphanumeric, dash/underscore/dot allowed</li>
+<li><strong>main</strong>: entry JS file (defaults to index.js)</li>
+<li><strong>settings</strong>: schema for admin UI</li>
+</ul>
+
+<h2>Entry Point</h2>
+<pre>module.exports = {
+  register(api) {
+    // called when extension loads
+  }
+};
+// or export register directly</pre>
+
+<h2>Extension API</h2>
+<table>
+<thead><tr><th>Method</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td>api.router</td><td>Express Router mounted at <code>/extensions/&lt;id&gt;</code></td></tr>
+<tr><td>api.route(method, path, ...h)</td><td>Register route on root app (supports <code>get/post/put/delete/all</code>). Also <code>api.route(path,h)</code> defaults GET.</td></tr>
+<tr><td>api.static(urlPath, dirRel)</td><td>Serve static files relative to extension dir under its namespace</td></tr>
+<tr><td>api.getSetting(key, def)</td><td>Get persisted setting</td></tr>
+<tr><td>api.setSetting(key, val)</td><td>Update persisted setting</td></tr>
+<tr><td>api.on(hook, fn)</td><td>Register hook handler returning HTML string</td></tr>
+<tr><td>api.addAuthProvider(p)</td><td>Register OAuth provider</td></tr>
+<tr><td>api.addAdminSection(s)</td><td>Register extra admin tab</td></tr>
+<tr><td>api.require(name)</td><td>Require core lib (<code>db,baseurl,i18n,mailer,archive</code>) or npm module</td></tr>
+<tr><td>api.log/api.error</td><td>Prefixed logging</td></tr>
+</tbody>
+</table>
+
+<h2>Hooks</h2>
+<p>Available hooks (common):</p>
+<ul>
+<li><code>auth.login.buttons</code> – injected into login form area</li>
+<li><code>auth.register.buttons</code> – injected into register form area</li>
+</ul>
+<p>Handler signature: <code>(req, res) =&gt; string</code></p>
+
+<h2>Auth Providers</h2>
+<pre>api.addAuthProvider({
+  id: 'myprovider',
+  label: 'My Provider',
+  icon: '&lt;svg...&gt;',
+  url: '/auth/oauth/myprovider',
+  order: 10
+});</pre>
+
+<h2>Packaging</h2>
+<ol>
+<li>Create directory <code>data/extensions/&lt;id&gt;/</code></li>
+<li>Add <code>pylox-extension.json</code> and <code>index.js</code></li>
+<li>Zip the contents (not the parent folder) as <code>&lt;id&gt;-&lt;version&gt;.zip</code></li>
+<li>Upload via Admin ? Extensions</li>
+</ol>
+
+<h2>Tips</h2>
+<ul>
+<li>Store OAuth table in your own table via <code>api.db.exec()</code></li>
+<li>Use <code>baseurl.resolveBaseUrl(req)</code> for public URLs</li>
+<li>Clean up on reinstall by not assuming state; schema uses <code>CREATE TABLE IF NOT EXISTS</code></li>
+<li>Keep JS small and handle errors</li>
+</ul>
+
+<div class="alert">
+<strong>Note:</strong> Extensions can run arbitrary code. Only install trusted extensions.
+</div>
+</div>
+</body>
+</html>

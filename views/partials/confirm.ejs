@@ -1,0 +1,84 @@
+<div class="modal-overlay confirm-overlay" id="pylox-confirm-modal" role="dialog" aria-modal="true">
+  <div class="modal modal-confirm" style="max-width:440px">
+    <h3>
+      <span class="modal-confirm-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <span data-pylox-confirm-title><%= t('common.confirmTitle') %></span>
+    </h3>
+    <p data-pylox-confirm-message></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" data-pylox-confirm-cancel><%= t('common.cancel') %></button>
+      <button type="button" class="btn btn-danger" data-pylox-confirm-ok><%= t('common.confirm') %></button>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var overlay = document.getElementById('pylox-confirm-modal');
+  if (!overlay) return;
+  var titleEl = overlay.querySelector('[data-pylox-confirm-title]');
+  var msgEl = overlay.querySelector('[data-pylox-confirm-message]');
+  var okBtn = overlay.querySelector('[data-pylox-confirm-ok]');
+  var cancelBtn = overlay.querySelector('[data-pylox-confirm-cancel]');
+  var callback = null;
+
+  function close() {
+    if (!overlay.classList.contains('active') && !overlay.classList.contains('closing')) return;
+    overlay.classList.add('closing');
+    setTimeout(function () {
+      overlay.classList.remove('active');
+      overlay.classList.remove('closing');
+      callback = null;
+    }, 300);
+  }
+
+  function open(message, cb, opts) {
+    opts = opts || {};
+    titleEl.textContent = opts.title || window.t('common.confirmTitle');
+    msgEl.textContent = message || '';
+    okBtn.textContent = opts.confirmText || window.t('common.confirm');
+    var danger = opts.danger !== false;
+    okBtn.classList.toggle('btn-danger', danger);
+    okBtn.classList.toggle('btn-primary', !danger);
+    callback = typeof cb === 'function' ? cb : null;
+    overlay.classList.remove('closing');
+    requestAnimationFrame(function () {
+      overlay.classList.add('active');
+      okBtn.focus();
+    });
+  }
+
+  okBtn.addEventListener('click', function () {
+    var cb = callback;
+    close();
+    if (cb) setTimeout(function () { cb(); }, 300);
+  });
+  cancelBtn.addEventListener('click', close);
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && overlay.classList.contains('active')) close();
+  });
+
+  window.pyloxConfirm = function (message, cb, opts) { open(message, cb, opts); };
+
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form || !form.getAttribute) return;
+    var message = form.getAttribute('data-confirm');
+    if (message === null) return;
+    if (form.getAttribute('data-pylox-confirmed') === '1') {
+      form.removeAttribute('data-pylox-confirmed');
+      return;
+    }
+    e.preventDefault();
+    open(message, function () {
+      form.setAttribute('data-pylox-confirmed', '1');
+      if (typeof form.requestSubmit === 'function') form.requestSubmit();
+      else form.submit();
+    });
+  }, true);
+})();
+</script>

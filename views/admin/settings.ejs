@@ -1,0 +1,406 @@
+<%- include('../partials/head') %>
+<%- include('../partials/nav') %>
+<div class="main-content">
+  <div class="page-wrapper">
+    <div class="page-header"><h1><%= t('admin.settings.title') %></h1><p><%= t('admin.settings.subtitle') %></p></div>
+    <%- include('_tabs') %>
+    <form method="POST" action="/admin/settings" id="admin-settings-form" enctype="multipart/form-data">
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div>
+            <h3><%= t('admin.settings.generalTitle') %></h3>
+            <p><%= t('admin.settings.generalDesc') %></p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="site-name"><%= t('admin.settings.panelName') %></label>
+            <input type="text" id="site-name" name="site_name" value="<%= settings.site_name %>" placeholder="<%= t('admin.settings.panelNamePlaceholder') %>">
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <div>
+            <h3><%= t('admin.settings.twoFactorTitle') %></h3>
+            <p><%= t('admin.settings.twoFactorDesc') %></p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="two-factor-auth"><%= t('admin.settings.twoFactorTitle') %></label>
+            <select id="two-factor-auth" name="two_factor_auth">
+              <% ['None','Admin Only','All Users'].forEach(v => { %><option value="<%= v %>" <%= settings.two_factor_auth === v ? 'selected' : '' %>><%= v %></option><% }) %>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon admin-settings-icon-blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </div>
+          <div>
+            <h3><%= t('admin.settings.smtpTitle') %></h3>
+            <p><%= t('admin.settings.smtpDesc') %></p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="smtp-host"><%= t('admin.settings.smtpHostLabel') %></label>
+              <input type="text" id="smtp-host" name="smtp_host" value="<%= settings.smtp_host %>" placeholder="<%= t('admin.settings.smtpExampleHost') %>">
+            </div>
+            <div class="form-group">
+              <label for="smtp-port"><%= t('admin.settings.smtpPortLabel') %></label>
+              <input type="text" id="smtp-port" name="smtp_port" value="<%= settings.smtp_port %>" placeholder="587">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="smtp-encryption"><%= t('admin.settings.smtpEncryptionLabel') %></label>
+            <select id="smtp-encryption" name="smtp_encryption">
+              <% ['none','tls','ssl'].forEach(v => { %><option value="<%= v %>" <%= settings.smtp_encryption === v ? 'selected' : '' %>><%= v.toUpperCase() %></option><% }) %>
+            </select>
+          </div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="smtp-username"><%= t('admin.settings.smtpUsernameLabel') %></label>
+              <input type="text" id="smtp-username" name="smtp_username" value="<%= settings.smtp_username %>" placeholder="<%= t('admin.settings.smtpExampleUser') %>">
+            </div>
+            <div class="form-group">
+              <label for="smtp-password"><%= t('admin.settings.smtpPasswordLabel') %></label>
+              <input type="password" id="smtp-password" name="smtp_password" value="" placeholder="<%= t('admin.settings.keepCurrentPlaceholder') %>">
+            </div>
+          </div>
+          <div class="grid-2" style="margin-bottom:0">
+            <div class="form-group">
+              <label for="smtp-from-email"><%= t('admin.settings.smtpFromEmailLabel') %></label>
+              <input type="email" id="smtp-from-email" name="smtp_from_email" value="<%= settings.smtp_from_email %>" placeholder="<%= t('admin.settings.smtpExampleNoReply') %>">
+            </div>
+            <div class="form-group">
+              <label for="smtp-from-name"><%= t('admin.settings.smtpFromNameLabel') %></label>
+              <input type="text" id="smtp-from-name" name="smtp_from_name" value="<%= settings.smtp_from_name %>" placeholder="<%= t('admin.settings.smtpExampleName') %>">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0;margin-top:12px">
+            <button type="button" class="btn btn-ghost" id="test-smtp-btn" style="width:100%"><%= t('admin.settings.testButton') %></button>
+            <span id="smtp-test-result" style="display:block;font-size:13px;margin-top:8px"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div>
+            <h3><%= t('admin.settings.captchaTitle') %></h3>
+            <p><%= t('admin.settings.captchaDesc') %></p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="form-group">
+            <label for="captcha-provider"><%= t('admin.settings.captchaLabel') %></label>
+            <select id="captcha-provider" name="captcha_provider">
+              <% ['Disabled','Cloudflare Turnstile','HCaptcha','Google Recaptcha'].forEach(v => { %><option value="<%= v %>" <%= settings.captcha_provider === v ? 'selected' : '' %>><%= v %></option><% }) %>
+            </select>
+          </div>
+          <div id="turnstile-settings" style="<%= settings.captcha_provider === 'Cloudflare Turnstile' ? '' : 'display:none' %>">
+            <div class="grid-2">
+              <div class="form-group">
+                <label><%= t('admin.settings.siteKeyLabel') %></label>
+                <input type="text" name="cloudflare_turnstile_site_key" value="<%= settings.cloudflare_turnstile_site_key %>">
+              </div>
+              <div class="form-group">
+                <label><%= t('admin.settings.secretKeyLabel') %></label>
+                <input type="password" name="cloudflare_turnstile_secret_key" value="" placeholder="<%= t('admin.settings.keepCurrentPlaceholder') %>">
+              </div>
+            </div>
+          </div>
+          <div id="hcaptcha-settings" style="<%= settings.captcha_provider === 'HCaptcha' ? '' : 'display:none' %>">
+            <div class="grid-2">
+              <div class="form-group">
+                <label><%= t('admin.settings.siteKeyLabel') %></label>
+                <input type="text" name="hcaptcha_site_key" value="<%= settings.hcaptcha_site_key %>">
+              </div>
+              <div class="form-group">
+                <label><%= t('admin.settings.secretKeyLabel') %></label>
+                <input type="password" name="hcaptcha_secret_key" value="" placeholder="<%= t('admin.settings.keepCurrentPlaceholder') %>">
+              </div>
+            </div>
+          </div>
+          <div id="recaptcha-settings" style="<%= settings.captcha_provider === 'Google Recaptcha' ? '' : 'display:none' %>">
+            <div class="grid-2">
+              <div class="form-group">
+                <label><%= t('admin.settings.siteKeyLabel') %></label>
+                <input type="text" name="google_recaptcha_site_key" value="<%= settings.google_recaptcha_site_key %>">
+              </div>
+              <div class="form-group">
+                <label><%= t('admin.settings.secretKeyLabel') %></label>
+                <input type="password" name="google_recaptcha_secret_key" value="" placeholder="<%= t('admin.settings.keepCurrentPlaceholder') %>">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon admin-settings-icon-blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          <div>
+            <h3><%= t('admin.settings.brandingTitle') %></h3>
+            <p><%= t('admin.settings.brandingDesc') %></p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="branding-logos-row">
+            <div class="form-group">
+              <label><%= t('admin.settings.pageLogoLabel') %></label>
+              <label class="branding-logo-box">
+                <img src="<%= settings.branding_page_logo %>" alt="<%= t('admin.settings.altPageLogo') %>">
+                <input type="file" name="page_logo" accept="image/*" hidden>
+              </label>
+            </div>
+            <div class="branding-divider"></div>
+            <div class="form-group">
+              <label><%= t('admin.settings.faviconLabel') %></label>
+              <label class="branding-logo-box">
+                <img src="<%= settings.branding_favicon %>" alt="<%= t('admin.settings.altFavicon') %>">
+                <input type="file" name="favicon" accept="image/*" hidden>
+              </label>
+            </div>
+          </div>
+          <p class="admin-settings-hint" style="margin-top:14px"><%= t('admin.settings.changeLogoHint') %></p>
+          <div style="margin-top:16px">
+            <button type="button" class="btn btn-ghost" id="reset-branding-btn" style="width:100%"><%= t('admin.settings.resetToDefault') %></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon admin-settings-icon-blue">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div>
+            <h3><%= t('admin.settings.localizationTitle') %></h3>
+            <p><%= t('admin.settings.localizationDesc') %></p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="grid-2" style="margin-bottom:0">
+            <div class="form-group" style="margin-bottom:0">
+              <label for="timezone"><%= t('admin.settings.timezone') %></label>
+              <select id="timezone" name="timezone">
+                <% var tzs = ['UTC','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','Europe/London','Europe/Berlin','Europe/Paris','Asia/Tokyo','Asia/Shanghai','Australia/Sydney','Africa/Johannesburg']; %>
+                <% tzs.forEach(tz => { %><option value="<%= tz %>" <%= settings.timezone === tz ? 'selected' : '' %>><%= tz %></option><% }) %>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label for="default-language"><%= t('admin.settings.defaultLanguage') %></label>
+              <select id="default-language" name="default_language">
+                <% i18nLangs.forEach(lg => { %><option value="<%= lg %>" <%= settings.default_language === lg ? 'selected' : '' %>><%= i18nNames[lg] || lg.toUpperCase() %></option><% }) %>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-settings-section">
+        <div class="admin-settings-intro">
+          <div class="admin-settings-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <div>
+            <h3>Miscellaneous</h3>
+            <p>Additional panel display options</p>
+          </div>
+        </div>
+        <div class="admin-settings-fields">
+          <div class="form-group" style="margin-bottom:0">
+            <label for="show-server-description">Show server descriptions on cards</label>
+            <select id="show-server-description" name="show_server_description">
+              <option value="1" <%= (settings.show_server_description || '1') === '1' ? 'selected' : '' %>>Show</option>
+              <option value="0" <%= (settings.show_server_description || '1') === '0' ? 'selected' : '' %>>Hide</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+  <div class="admin-settings-footer">
+    <span id="admin-settings-status"></span>
+    <button type="submit" class="btn btn-primary" id="save-settings"><%= t('admin.settings.saveButton') %></button>
+  </div>
+    </form>
+  </div>
+</div>
+<style>
+.admin-settings-section {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 40px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border);
+}
+.admin-settings-section:first-of-type { border-top: 1px solid var(--border); }
+.admin-settings-intro { display: flex; gap: 14px; align-items: flex-start; }
+.admin-settings-intro h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.admin-settings-intro p { font-size: 13px; color: var(--text-muted); line-height: 1.55; }
+.admin-settings-icon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(var(--accent-r), var(--accent-g), var(--accent-b), 0.12);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-settings-icon-blue { background: rgba(59, 130, 246, 0.12); color: #3b82f6; }
+.admin-settings-fields { max-width: 560px; }
+.admin-settings-hint { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+.branding-logos-row { display: flex; justify-content: center; align-items: flex-end; gap: 32px; width: 100%; }
+.branding-logos-row .form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0;
+}
+.branding-logos-row .branding-logo-box { margin-bottom: 0; }
+.branding-divider {
+  flex: 0 0 1px;
+  align-self: flex-end;
+  height: 96px;
+  background: var(--border);
+}
+.admin-settings-fields .branding-logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 96px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.admin-settings-fields .branding-logo-box:hover { border-color: var(--accent); }
+.admin-settings-fields .branding-logo-box img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.admin-settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  padding-top: 24px;
+}
+#admin-settings-status.dirty { color: #f59e0b; }
+@media (max-width: 860px) {
+  .admin-settings-section { grid-template-columns: 1fr; gap: 20px; padding: 24px 0; }
+}
+</style>
+<script>
+(() => {
+  const form = document.getElementById('admin-settings-form');
+  const status = document.getElementById('admin-settings-status');
+  if (!form || !status) return;
+  form.addEventListener('input', () => {
+    status.textContent = window.t('admin.settings.unsavedChanges');
+    status.classList.add('dirty');
+  });
+  form.addEventListener('change', () => {
+    status.textContent = window.t('admin.settings.unsavedChanges');
+    status.classList.add('dirty');
+  });
+
+  const captcha = document.getElementById('captcha-provider');
+  const turnstile = document.getElementById('turnstile-settings');
+  const hcaptcha = document.getElementById('hcaptcha-settings');
+  const recaptcha = document.getElementById('recaptcha-settings');
+  if (captcha) {
+    captcha.addEventListener('change', () => {
+      turnstile.style.display = captcha.value === 'Cloudflare Turnstile' ? '' : 'none';
+      hcaptcha.style.display = captcha.value === 'HCaptcha' ? '' : 'none';
+      recaptcha.style.display = captcha.value === 'Google Recaptcha' ? '' : 'none';
+    });
+  }
+
+  const smtpBtn = document.getElementById('test-smtp-btn');
+  const smtpResult = document.getElementById('smtp-test-result');
+  if (smtpBtn && smtpResult) {
+    const setResult = (msg, isError) => {
+      smtpResult.textContent = msg;
+      smtpResult.style.color = isError ? '#ef4444' : '#22c55e';
+    };
+    smtpBtn.addEventListener('click', async () => {
+      setResult(window.t('admin.settings.testing'), false);
+      smtpBtn.disabled = true;
+      try {
+        const resp = await fetch('/admin/settings/test-smtp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'smtp_host=' + encodeURIComponent(form.smtp_host.value) +
+                '&smtp_port=' + encodeURIComponent(form.smtp_port.value) +
+                '&smtp_encryption=' + encodeURIComponent(form.smtp_encryption.value) +
+                '&smtp_username=' + encodeURIComponent(form.smtp_username.value) +
+                '&smtp_password=' + encodeURIComponent(form.smtp_password.value) +
+                '&smtp_from_email=' + encodeURIComponent(form.smtp_from_email.value) +
+                '&smtp_from_name=' + encodeURIComponent(form.smtp_from_name.value),
+        });
+        const data = await resp.json().catch(() => ({}));
+        if (resp.ok && data.ok) {
+          setResult(window.t('admin.settings.testSuccess'), false);
+        } else {
+          setResult(data.error || window.t('admin.settings.testFailed'), true);
+        }
+      } catch (e) {
+        setResult(window.t('admin.settings.testFailed'), true);
+      } finally {
+        smtpBtn.disabled = false;
+      }
+    });
+  }
+
+  form.querySelectorAll('.branding-logo-box').forEach((box) => {
+    const input = box.querySelector('input[type="file"]');
+    const img = box.querySelector('img');
+    if (!input || !img) return;
+    input.addEventListener('change', () => {
+      if (input.files && input.files[0]) img.src = URL.createObjectURL(input.files[0]);
+    });
+  });
+
+  const resetBrandingBtn = document.getElementById('reset-branding-btn');
+  if (resetBrandingBtn) {
+    resetBrandingBtn.addEventListener('click', () => {
+      window.pyloxConfirm(window.t('admin.settings.resetBrandingConfirm'), () => {
+        const resetForm = document.createElement('form');
+        resetForm.method = 'POST';
+        resetForm.action = '/admin/settings/reset-branding';
+        document.body.appendChild(resetForm);
+        resetForm.submit();
+      });
+    });
+  }
+})();
+</script>
+</body></html>
