@@ -73,7 +73,7 @@ Install options:
   --db sqlite|mysql     Database driver (default: sqlite)
   --port PORT           Panel HTTP port (default: 6000)
   --url URL             Public application URL (default: http://localhost:PORT)
-  --install-dir DIR     Install directory (default: /opt/pyloxdactyl)
+  --install-dir DIR     Install directory (default: /var/www/pyloxdactyl)
   --data-dir DIR        Runtime data directory (default: /var/lib/pyloxdactyl)
   --service NAME        systemd service name (default: pyloxdactyl)
   --pull-yolks          Pre-pull common Pterodactyl yolks images
@@ -91,7 +91,7 @@ REPO_SLUG="${REPO_SLUG:-${REPO:-PyloxLabs/pyloxdactyl}}"
 REF="${REF:-main}"
 SOURCE_DIR="${SOURCE_DIR:-}"
 
-INSTALL_DIR="${INSTALL_DIR:-/opt/pyloxdactyl}"
+INSTALL_DIR="${INSTALL_DIR:-/var/www/pyloxdactyl}"
 DATA_DIR="${DATA_DIR:-/var/lib/pyloxdactyl}"
 SERVICE_NAME="${SERVICE_NAME:-pyloxdactyl}"
 SERVICE_USER="${SERVICE_USER:-pyloxdactyl}"
