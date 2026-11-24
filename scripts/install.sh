@@ -12,6 +12,9 @@
 #   sudo bash <(curl -fsSL https://install.pyloxdactyl.pylox.net) --uninstall
 #
 # The daemon is installed separately from its own repository.
+#
+# Animations are enabled automatically on UTF-8 terminals. Disable them with
+# PYLOX_NO_ANIM=1 (or NO_COLOR=1).
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 set -Eeuo pipefail
@@ -21,7 +24,15 @@ ORANGE=$'\033[38;5;208m'
 GREEN=$'\033[38;5;78m'
 RED=$'\033[38;5;196m'
 YELLOW=$'\033[38;5;214m'
+PINK=$'\033[38;5;213m'
+WHITE=$'\033[38;5;231m'
+GREY=$'\033[38;5;245m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
 NC=$'\033[0m'
+
+# Violet -> pink -> orange gradient (256-colour palette indexes)
+GRADIENT=(93 99 105 141 177 213 212 211 210 209 208)
 
 log() {
   if [[ "${1:-}" == "-e" ]]; then
@@ -72,6 +83,7 @@ Install options:
 
 Environment equivalents: REPO, REF, SOURCE_DIR, DB_DRIVER, DB_NAME, APP_PORT,
 APP_URL, INSTALL_DIR, DATA_DIR, SERVICE_NAME, SERVICE_USER are also accepted.
+Set PYLOX_NO_ANIM=1 to disable terminal animations.
 EOF
 }
 
@@ -98,8 +110,12 @@ TMP_DIR=""
 SRC_DIR=""
 SOURCE_LABEL=""
 LAST_BACKUP_DIR=""
+UI_ANIM=0
 
 cleanup() {
+  if [[ -t 1 ]]; then
+    printf '\033[?25h'
+  fi
   if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
     rm -rf "$TMP_DIR"
   fi
@@ -107,6 +123,7 @@ cleanup() {
 
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pyloxdactyl-install.XXXXXX")" || die "Could not create a temporary directory."
 trap cleanup EXIT
+trap 'exit 130' INT TERM
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -222,9 +239,52 @@ node_major() {
   node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0
 }
 
-# ── UI helpers ───────────────────────────────────────────────────────────────
+# ── UI: terminal detection ───────────────────────────────────────────────────
+# Animations need a real terminal and a UTF-8 locale (the banner is sliced
+# character by character). Otherwise everything falls back to static output.
+setup_ui() {
+  UI_ANIM=0
+  if [[ -t 1 && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" && "${PYLOX_NO_ANIM:-0}" != "1" ]]; then
+    local cm
+    cm="$(locale charmap 2>/dev/null || true)"
+    if [[ "${cm^^}" != "UTF-8" ]] && locale -a 2>/dev/null | grep -qiE '^c\.utf-?8$'; then
+      export LC_ALL=C.UTF-8
+      cm="$(locale charmap 2>/dev/null || true)"
+    fi
+    if [[ "${cm^^}" == "UTF-8" ]]; then
+      UI_ANIM=1
+    fi
+  fi
+  return 0
+}
+setup_ui
+
+term_cols() {
+  local sz cols=""
+  sz="$(stty size 2>/dev/null || true)"
+  cols="${sz##* }"
+  if ! [[ "$cols" =~ ^[0-9]+$ ]] || (( cols < 20 )); then
+    cols="$(tput cols 2>/dev/null || true)"
+  fi
+  if ! [[ "$cols" =~ ^[0-9]+$ ]] || (( cols < 20 )); then
+    cols="${COLUMNS:-80}"
+  fi
+  printf '%s' "$cols"
+}
+
+hide_cursor() {
+  if [[ $UI_ANIM -eq 1 ]]; then printf '\033[?25l'; fi
+  return 0
+}
+
+show_cursor() {
+  if [[ $UI_ANIM -eq 1 ]]; then printf '\033[?25h'; fi
+  return 0
+}
+
 clear_screen() {
-  printf '\033[2J\033[H'
+  if [[ -t 1 ]]; then printf '\033[2J\033[H'; fi
+  return 0
 }
 
 type_line() {
@@ -238,50 +298,213 @@ type_line() {
   printf '\n'
 }
 
-banner() {
-  clear_screen
-  printf '%s' "$PURPLE"
-  cat <<'EOF'
-
-   ██████╗ ██╗   ██╗██╗      ██████╗ ██╗  ██╗██████╗  █████╗  ██████╗████████╗██╗   ██╗██╗
-   ██╔══██╗╚██╗ ██╔╝██║     ██╔═══██╗╚██╗██╔╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝╚██╗ ██╔╝██║
-   ██████╔╝ ╚████╔╝ ██║     ██║   ██║ ╚███╔╝ ██║  ██║███████║██║        ██║    ╚████╔╝ ██║
-   ██╔═══╝   ╚██╔╝  ██║     ██║   ██║ ██╔██╗ ██║  ██║██╔══██║██║        ██║     ╚██╔╝  ██║
-   ██║        ██║   ███████╗╚██████╔╝██╔╝ ██╗██████╔╝██║  ██║╚██████╗   ██║      ██║   ███████╗
-   ╚═╝        ╚═╝   ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝   ╚═╝      ╚═╝   ╚══════╝
-
-EOF
-  printf '%s' "$NC"
-  type_line "$ORANGE" "   Self-hosted game server control panel"
-  printf '\n'
+gradient_rule() {
+  local w="${1:-72}" i n=${#GRADIENT[@]} out=""
+  for (( i = 0; i < w; i++ )); do
+    out+=$'\033[38;5;'"${GRADIENT[$(( i * n / w ))]}"$'m━'
+  done
+  printf '%s%s\n' "$out" "$NC"
 }
 
+# ── UI: banner (gradient + shimmer) ──────────────────────────────────────────
+BIG_W=92
+COMPACT_W=27
+BIG_BANNER=(
+  '██████╗ ██╗   ██╗██╗      ██████╗ ██╗  ██╗██████╗  █████╗  ██████╗████████╗██╗   ██╗██╗'
+  '██╔══██╗╚██╗ ██╔╝██║     ██╔═══██╗╚██╗██╔╝██╔══██╗██╔══██╗██╔════╝╚══██╔══╝╚██╗ ██╔╝██║'
+  '██████╔╝ ╚████╔╝ ██║     ██║   ██║ ╚███╔╝ ██║  ██║███████║██║        ██║    ╚████╔╝ ██║'
+  '██╔═══╝   ╚██╔╝  ██║     ██║   ██║ ██╔██╗ ██║  ██║██╔══██║██║        ██║     ╚██╔╝  ██║'
+  '██║        ██║   ███████╗╚██████╔╝██╔╝ ██╗██████╔╝██║  ██║╚██████╗   ██║      ██║   ███████╗'
+  '╚═╝        ╚═╝   ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝   ╚═╝      ╚═╝   ╚══════╝'
+)
+COMPACT_BANNER='◆  P Y L O X D A C T Y L  ◆'
+
+BANNER_ROWS=()
+BASE_COLOR=()
+BANNER_W=0
+BANNER_TOP=2
+BANNER_COL=4
+BANNER_SEEN=0
+TAG_ROW=0
+INFO_ROW=0
+END_ROW=0
+MENU_TOP=0
+
+# Picks the big or compact banner for the current terminal width and
+# precomputes the per-column gradient colours and the screen layout rows.
+init_banner() {
+  local cols w n c rule
+  cols="$(term_cols)"
+  if (( cols >= BIG_W + BANNER_COL + 2 )); then
+    BANNER_ROWS=("${BIG_BANNER[@]}")
+    w=$BIG_W
+  else
+    BANNER_ROWS=("$COMPACT_BANNER")
+    w=$COMPACT_W
+  fi
+  BANNER_W=$w
+  rule="$(printf '%*s' "$w" '')"
+  BANNER_ROWS+=("${rule// /━}")
+
+  n=${#GRADIENT[@]}
+  BASE_COLOR=()
+  for (( c = 0; c < w; c++ )); do
+    BASE_COLOR[c]="${GRADIENT[$(( c * n / w ))]}"
+  done
+
+  TAG_ROW=$(( BANNER_TOP + ${#BANNER_ROWS[@]} + 1 ))
+  INFO_ROW=$(( TAG_ROW + 1 ))
+  END_ROW=$(( INFO_ROW + 2 ))
+  MENU_TOP=$END_ROW
+}
+
+# draw_banner_frame SHINE [REVEAL]
+#   SHINE  column of the diagonal highlight (use -100 for "no highlight")
+#   REVEAL only columns <= REVEAL are drawn (used by the intro wipe)
+draw_banner_frame() {
+  local shine="$1" reveal="${2:-9999}"
+  local nrows=${#BANNER_ROWS[@]}
+  local r c d attr color key last out line ch frame=""
+
+  for (( r = 0; r < nrows; r++ )); do
+    line="${BANNER_ROWS[$r]}"
+    out=""
+    last=""
+    for (( c = 0; c < BANNER_W; c++ )); do
+      ch="${line:c:1}"
+      if [[ -z "$ch" || "$ch" == " " || $c -gt $reveal ]]; then
+        out+=" "
+        continue
+      fi
+
+      d=$(( c - shine + r * 2 ))
+      d=${d#-}
+      attr=""
+      if (( d <= 1 )); then
+        color=231
+        attr=";1"
+      elif (( d <= 3 )); then
+        color=225
+      elif (( d <= 5 )); then
+        color=219
+      else
+        color="${BASE_COLOR[c]}"
+        case "$ch" in
+          ╗|╔|╝|╚|║|═) attr=";2" ;;
+        esac
+      fi
+
+      key="${attr}:${color}"
+      if [[ "$key" != "$last" ]]; then
+        out+=$'\033[0'"${attr};38;5;${color}m"
+        last="$key"
+      fi
+      out+="$ch"
+    done
+    frame+=$'\033['"$(( BANNER_TOP + r ));${BANNER_COL}H${out}"$'\033[0m'
+  done
+  printf '%s' "$frame"
+}
+
+print_tagline() {
+  local typed="${1:-0}"
+  local text="▸ Self-hosted game server control panel"
+  local len=${#text} n=${#GRADIENT[@]} i
+
+  printf '\033[%d;%dH' "$TAG_ROW" "$BANNER_COL"
+  for (( i = 0; i < len; i++ )); do
+    printf '\033[38;5;%dm%s' "${GRADIENT[$(( i * n / len ))]}" "${text:i:1}"
+    if [[ $typed -eq 1 ]]; then sleep 0.012; fi
+  done
+  printf '%b' "$NC"
+  printf '\033[%d;%dH%b%s%b' "$INFO_ROW" "$BANNER_COL" "${DIM}${GREY}" \
+    "github.com/${REPO_SLUG}  ·  Docker  ·  systemd  ·  Pterodactyl eggs" "$NC"
+}
+
+banner() {
+  local first=0 c row
+  if [[ $BANNER_SEEN -eq 0 ]]; then first=1; fi
+  BANNER_SEEN=1
+
+  clear_screen
+  init_banner
+
+  if [[ $UI_ANIM -eq 1 ]]; then
+    hide_cursor
+    if [[ $first -eq 1 ]]; then
+      # Intro: a bright edge wipes the logo in from the left
+      for (( c = -2; c <= BANNER_W + 4; c += 3 )); do
+        draw_banner_frame "$c" "$c"
+        sleep 0.012
+      done
+      draw_banner_frame -100
+      print_tagline 1
+    else
+      draw_banner_frame -100
+      print_tagline 0
+    fi
+    printf '\033[%d;1H' "$END_ROW"
+    show_cursor
+  else
+    printf '\n'
+    for row in "${BANNER_ROWS[@]}"; do
+      printf '   %b%s%b\n' "$PURPLE" "$row" "$NC"
+    done
+    printf '\n'
+    type_line "$ORANGE" "   Self-hosted game server control panel"
+    printf '\n'
+  fi
+}
+
+# ── UI: steps, spinner, prompts ──────────────────────────────────────────────
 step() {
-  printf '\n%b━━ %s%b\n' "$PURPLE" "$1" "$NC"
+  local text="$1" n m title bar="" i filled gn=${#GRADIENT[@]} width=20
+  if [[ "$text" =~ ^([0-9]+)/([0-9]+)[[:space:]]+(.*)$ ]]; then
+    n="${BASH_REMATCH[1]}"
+    m="${BASH_REMATCH[2]}"
+    title="${BASH_REMATCH[3]}"
+    filled=$(( n * width / m ))
+    for (( i = 0; i < width; i++ )); do
+      if (( i < filled )); then
+        bar+=$'\033[38;5;'"${GRADIENT[$(( i * gn / width ))]}"$'m█'
+      else
+        bar+="${DIM}${GREY}░"
+      fi
+    done
+    bar+="$NC"
+    printf '\n%b━━%b %b%s%b\n   %s %b%s/%s%b\n' \
+      "$PURPLE" "$NC" "$BOLD" "$title" "$NC" "$bar" "${DIM}${GREY}" "$n" "$m" "$NC"
+  else
+    printf '\n%b━━ %s%b\n' "$PURPLE" "$text" "$NC"
+  fi
 }
 
 run_with_spinner() {
   local label="$1"
   shift
   local log="$TMP_DIR/spinner.log"
-  local pid status i
+  local pid status i=0 start=$SECONDS color n=${#GRADIENT[@]}
   local -a frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
   : > "$log"
 
+  hide_cursor
   "$@" > "$log" 2>&1 &
   pid=$!
-  i=0
   while kill -0 "$pid" 2>/dev/null; do
-    printf '\r  %s %b%-64s%b' "${frames[$i]}" "$ORANGE" "$label" "$NC"
-    i=$(( (i + 1) % ${#frames[@]} ))
+    color="${GRADIENT[$(( i % n ))]}"
+    printf '\r  \033[38;5;%dm%s%b %b%-56s%b %b%3ds%b' \
+      "$color" "${frames[$(( i % ${#frames[@]} ))]}" "$NC" \
+      "$ORANGE" "$label" "$NC" "${DIM}${GREY}" "$(( SECONDS - start ))" "$NC"
+    i=$(( i + 1 ))
     sleep 0.08
   done
 
   if wait "$pid"; then status=0; else status=$?; fi
-  printf '\r  %*s\r' 90 ''
+  printf '\r\033[2K'
+  show_cursor
 
   if [[ $status -eq 0 ]]; then
-    printf '  %b✓%b %s\n' "$GREEN" "$NC" "$label"
+    printf '  %b✓%b %s %b(%ds)%b\n' "$GREEN" "$NC" "$label" "${DIM}${GREY}" "$(( SECONDS - start ))" "$NC"
   else
     printf '  %b✗%b %s\n' "$RED" "$NC" "$label"
     cat "$log" >&2
@@ -565,32 +788,33 @@ health_check() {
 
 final_summary() {
   log ""
-  log -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  log -e "${GREEN}  Pyloxdactyl ready${NC}"
-  log -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  gradient_rule 72
+  log -e "  ${BOLD}${GREEN}✔ Pyloxdactyl ready${NC}"
+  gradient_rule 72
   log ""
-  log -e "  URL:           ${YELLOW}${APP_URL}${NC}"
-  log -e "  Source:        ${YELLOW}${SOURCE_LABEL}${NC}"
-  log -e "  Install dir:   ${YELLOW}${INSTALL_DIR}${NC}"
-  log -e "  Data dir:      ${YELLOW}${DATA_DIR}${NC}"
-  log -e "  Database:      ${YELLOW}${DB_DRIVER}${NC}"
-  log -e "  Service:       ${YELLOW}${SERVICE_NAME}${NC}"
+  log -e "  ${GREY}URL           ${NC}${YELLOW}${APP_URL}${NC}"
+  log -e "  ${GREY}Source        ${NC}${YELLOW}${SOURCE_LABEL}${NC}"
+  log -e "  ${GREY}Install dir   ${NC}${YELLOW}${INSTALL_DIR}${NC}"
+  log -e "  ${GREY}Data dir      ${NC}${YELLOW}${DATA_DIR}${NC}"
+  log -e "  ${GREY}Database      ${NC}${YELLOW}${DB_DRIVER}${NC}"
+  log -e "  ${GREY}Service       ${NC}${YELLOW}${SERVICE_NAME}${NC}"
   if [[ -n "$LAST_BACKUP_DIR" ]]; then
-    log -e "  Backup:        ${YELLOW}${LAST_BACKUP_DIR}${NC}"
+    log -e "  ${GREY}Backup        ${NC}${YELLOW}${LAST_BACKUP_DIR}${NC}"
   fi
   log ""
-  log -e "  ${PURPLE}Next steps:${NC}"
-  log -e "    1. Open ${APP_URL} and register. The first user becomes root admin."
-  log -e "    2. Install the daemon separately, then add its address/token as a node in Admin -> Nodes."
-  log -e "    3. Add allocations, import eggs, and create a server."
+  log -e "  ${PINK}Next steps${NC}"
+  log -e "    ${PURPLE}1.${NC} Open ${APP_URL} and register. The first user becomes root admin."
+  log -e "    ${PURPLE}2.${NC} Install the daemon separately, then add its address/token as a node in Admin -> Nodes."
+  log -e "    ${PURPLE}3.${NC} Add allocations, import eggs, and create a server."
   log ""
   if command -v systemctl >/dev/null 2>&1 && [[ -d /run/systemd/system ]]; then
-    log -e "  ${PURPLE}Service commands:${NC}"
+    log -e "  ${PINK}Service commands${NC}"
     log -e "    systemctl status ${SERVICE_NAME}"
     log -e "    systemctl restart ${SERVICE_NAME}"
     log -e "    journalctl -u ${SERVICE_NAME} -f"
     log ""
   fi
+  gradient_rule 72
 }
 
 # ── 1. Install ───────────────────────────────────────────────────────────────
@@ -884,53 +1108,30 @@ do_update() {
 }
 
 # ── 3. Legacy eggs ───────────────────────────────────────────────────────────
+egg_group() {
+  local title="$1"
+  shift
+  local item
+  printf '\n  %b▸ %s%b\n' "$ORANGE" "$title" "$NC"
+  for item in "$@"; do
+    printf '    %b•%b %s\n' "$PURPLE" "$NC" "$item"
+  done
+}
+
 show_legacy_egg_list() {
-  cat <<'LIST'
-
-  %bMinecraft%b
-    - Waterfall
-    - Velocity
-    - Quilt
-    - Folia
-    - Sponge/SpongeNeo
-    - Fabric
-    - Sponge/SpongeVanilla
-    - Purpur
-    - Limbo
-    - Bungeecord
-    - Vanilla Minecraft
-    - Neoforge
-    - Paper
-    - Sponge/SpongeForge
-    - Forge Minecraft
-
-  %bHytale%b
-    - Hytale
-
-  %bSource Engine%b
-    - Counter Strike: Global Offensive
-    - Team Fortress 2
-    - Garrys Mod
-    - Ark:Survival Envolved
-    - Custom Source Engine Game
-    - Insurgery
-
-  %bVoice Servers%b
-    - TeamSpeak 3 Server
-    - Mumble Server
-
-  %bRust%b
-    - Rust
-
-  %bVintage Story%b
-    - Vintage Story
-
-  %bGeneric%b
-    - node.js generic
-    - python generic
-    - Nginx Egg
-
-LIST
+  egg_group "Minecraft" \
+    "Waterfall" "Velocity" "Quilt" "Folia" "Sponge/SpongeNeo" "Fabric" \
+    "Sponge/SpongeVanilla" "Purpur" "Limbo" "Bungeecord" "Vanilla Minecraft" \
+    "Neoforge" "Paper" "Sponge/SpongeForge" "Forge Minecraft"
+  egg_group "Hytale" "Hytale"
+  egg_group "Source Engine" \
+    "Counter Strike: Global Offensive" "Team Fortress 2" "Garrys Mod" \
+    "Ark:Survival Envolved" "Custom Source Engine Game" "Insurgery"
+  egg_group "Voice Servers" "TeamSpeak 3 Server" "Mumble Server"
+  egg_group "Rust" "Rust"
+  egg_group "Vintage Story" "Vintage Story"
+  egg_group "Generic" "node.js generic" "python generic" "Nginx Egg"
+  printf '\n'
 }
 
 install_legacy_eggs() {
@@ -942,11 +1143,7 @@ install_legacy_eggs() {
   ensure_node
 
   step "Egg list"
-  printf '%b' "$PURPLE"
-  show_legacy_egg_list | while IFS= read -r line; do
-    printf '%b\n' "$line"
-  done
-  printf '%b' "$NC"
+  show_legacy_egg_list
 
   if [[ $ASSUME_YES -eq 0 ]] && ! ask_yes_no "Import these nests and eggs?" y; then
     warn "Egg import cancelled."
@@ -1285,22 +1482,148 @@ do_uninstall() {
 }
 
 # ── Menu ─────────────────────────────────────────────────────────────────────
-show_menu() {
-  banner
-  printf '%b  %s%b\n' "$ORANGE" "Main menu" "$NC"
-  printf '\n'
-  printf '  %b[1]%b %bInstall Pyloxdactyl%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
-  printf '  %b[2]%b %bUpdate Pyloxdactyl%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
-  printf '  %b[3]%b %bInstall Legacy Eggs%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
-  printf '  %b[4]%b %bUninstall Pyloxdactyl%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
-  printf '  %b[0]%b %bExit%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
-  printf '\n'
+MENU_KEYS=(1 2 3 4 0)
+MENU_LABELS=("Install Pyloxdactyl" "Update Pyloxdactyl" "Install Legacy Eggs" "Uninstall Pyloxdactyl" "Exit")
+MENU_DESCS=(
+  "Fresh install of the panel"
+  "Pull the latest version from GitHub"
+  "Import Pterodactyl / Pelican eggs"
+  "Remove the panel from this server"
+  "Leave the installer"
+)
+MENU_INNER=66
+
+# Draws the boxed menu with the selected row highlighted.
+draw_menu() {
+  local sel="$1"
+  local n=${#MENU_LABELS[@]} i row hline out="" line ptr kc lc dc
+
+  hline="$(printf '%*s' "$MENU_INNER" '')"
+  hline="${hline// /─}"
+
+  out+=$'\033['"${MENU_TOP};${BANNER_COL}H${PURPLE}╭${hline}╮${NC}"
+  for (( i = 0; i < n; i++ )); do
+    row=$(( MENU_TOP + 1 + i ))
+    if (( i == sel )); then
+      ptr="${PINK}❯${NC}"
+      kc="${PINK}${BOLD}"
+      lc="${BOLD}${WHITE}"
+      dc="$ORANGE"
+    else
+      ptr=" "
+      kc="$PURPLE"
+      lc="$GREY"
+      dc="${DIM}${GREY}"
+    fi
+    printf -v line '\033[%d;%dH%b│%b %b %b%s%b  %b%-22s%b %b%-36s%b %b│%b' \
+      "$row" "$BANNER_COL" "$PURPLE" "$NC" "$ptr" "$kc" "${MENU_KEYS[$i]}" "$NC" \
+      "$lc" "${MENU_LABELS[$i]}" "$NC" "$dc" "${MENU_DESCS[$i]}" "$NC" "$PURPLE" "$NC"
+    out+="$line"
+  done
+  out+=$'\033['"$(( MENU_TOP + n + 1 ));${BANNER_COL}H${PURPLE}╰${hline}╯${NC}"
+  printf '%s' "$out"
 }
 
-main_menu() {
+draw_hint() {
+  local n=${#MENU_LABELS[@]}
+  printf '\033[%d;%dH%b%s%b' "$(( MENU_TOP + n + 3 ))" "$BANNER_COL" "${DIM}${GREY}" \
+    "↑/↓ navigate   enter select   1-4 jump   q quit" "$NC"
+}
+
+# Animated menu: arrow keys / number keys, plus a light sweep across the logo
+# every few seconds while it waits for input.
+main_menu_anim() {
+  local sel=0 n=${#MENU_LABELS[@]} key seq rc act i
+  local idle sweeping shine sweep_end t
+  local idle_ticks=14   # 14 * 0.25s ≈ 3.5s between sweeps
+
+  while true; do
+    banner
+    hide_cursor
+    draw_menu "$sel"
+    draw_hint
+    printf '\033[%d;1H' "$(( MENU_TOP + n + 5 ))"
+
+    sweep_end=$(( BANNER_W + 2 * ${#BANNER_ROWS[@]} + 8 ))
+    act=""
+    idle=0
+    sweeping=0
+    shine=0
+
+    while [[ -z "$act" ]]; do
+      t="0.25"
+      if (( sweeping )); then t="0.03"; fi
+
+      if IFS= read -rsn1 -t "$t" key; then
+        case "$key" in
+          $'\033')
+            seq=""
+            IFS= read -rsn2 -t 0.05 seq || true
+            case "$seq" in
+              '[A') sel=$(( (sel + n - 1) % n )); draw_menu "$sel" ;;
+              '[B') sel=$(( (sel + 1) % n )); draw_menu "$sel" ;;
+            esac
+            ;;
+          k) sel=$(( (sel + n - 1) % n )); draw_menu "$sel" ;;
+          j) sel=$(( (sel + 1) % n )); draw_menu "$sel" ;;
+          "") act="${MENU_KEYS[$sel]}" ;;
+          [0-4])
+            for (( i = 0; i < n; i++ )); do
+              if [[ "${MENU_KEYS[$i]}" == "$key" ]]; then sel=$i; fi
+            done
+            draw_menu "$sel"
+            act="$key"
+            ;;
+          q|Q) act=0 ;;
+        esac
+      else
+        rc=$?
+        if (( rc <= 128 )); then
+          act=0   # stdin closed
+        elif (( sweeping )); then
+          draw_banner_frame "$shine"
+          shine=$(( shine + 5 ))
+          if (( shine > sweep_end )); then
+            draw_banner_frame -100
+            sweeping=0
+            idle=0
+          fi
+        else
+          idle=$(( idle + 1 ))
+          if (( idle >= idle_ticks )); then
+            sweeping=1
+            shine=-6
+          fi
+        fi
+      fi
+    done
+
+    show_cursor
+    printf '\033[%d;1H\n' "$(( MENU_TOP + n + 5 ))"
+    case "$act" in
+      1) do_install ;;
+      2) do_update ;;
+      3) install_legacy_eggs ;;
+      4) do_uninstall ;;
+      0) printf '\n'; exit 0 ;;
+    esac
+    press_enter
+  done
+}
+
+# Plain numbered menu (no animation): used when the terminal can't animate.
+main_menu_plain() {
   local choice=""
   while true; do
-    show_menu
+    banner
+    printf '%b  %s%b\n' "$ORANGE" "Main menu" "$NC"
+    printf '\n'
+    printf '  %b[1]%b %bInstall Pyloxdactyl%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
+    printf '  %b[2]%b %bUpdate Pyloxdactyl%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
+    printf '  %b[3]%b %bInstall Legacy Eggs%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
+    printf '  %b[4]%b %bUninstall Pyloxdactyl%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
+    printf '  %b[0]%b %bExit%b\n' "$PURPLE" "$NC" "$ORANGE" "$NC"
+    printf '\n'
     printf '%bSelect an option:%b ' "$PURPLE" "$NC"
     read -r choice || exit 0
     case "$choice" in
@@ -1313,6 +1636,14 @@ main_menu() {
     esac
     press_enter
   done
+}
+
+main_menu() {
+  if [[ $UI_ANIM -eq 1 && -t 0 ]]; then
+    main_menu_anim
+  else
+    main_menu_plain
+  fi
 }
 
 case "$ACTION" in
