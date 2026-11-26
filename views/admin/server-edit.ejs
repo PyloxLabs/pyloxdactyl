@@ -337,11 +337,6 @@
           <h3 style="color:#ef4444"><%= t('common.dangerZone') %></h3>
           <p><%= t('admin.serverEdit.manageDesc') %></p>
         </div>
-        <% if (nodeData) { %>
-          <div class="manage-node-summary">
-            <%= t('admin.serverEdit.nodeSummary', { name: nodeData.name, memoryUsed: memAlloc, memoryTotal: nodeData.memory, diskUsed: diskAlloc, diskTotal: nodeData.disk * 1024 }) %>
-          </div>
-        <% } %>
         <div class="manage-danger-footer">
           <form method="POST" action="/admin/servers/<%= srvServer.id %>/delete" data-confirm="<%= t('admin.serverEdit.deleteConfirm') %>">
             <button class="btn btn-danger"><%= t('admin.serverEdit.deleteServerButton') %></button>

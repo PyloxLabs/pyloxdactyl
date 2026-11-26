@@ -819,7 +819,7 @@ final_summary() {
   fi
   log ""
   log -e "  ${PINK}Next steps${NC}"
-  log -e "    ${PURPLE}1.${NC} Open ${APP_URL} and register. The first user becomes root admin."
+  log -e "    ${PURPLE}1.${NC} Open ${APP_URL}. The first visit shows a welcome screen and creates the root admin."
   log -e "    ${PURPLE}2.${NC} Install the daemon separately, then add its address/token as a node in Admin -> Nodes."
   log -e "    ${PURPLE}3.${NC} Add allocations, import eggs, and create a server."
   log ""

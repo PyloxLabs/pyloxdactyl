@@ -937,6 +937,32 @@ button.btn {
   gap: 6px;
 }
 
+/* Server page power actions use pill-shaped buttons with a short crossfade
+   when Start swaps places with Stop / Restart / Kill. */
+.power-actions { justify-content: flex-end; flex-wrap: nowrap; }
+.power-actions .btn { border-radius: 20px; }
+.power-actions .btn[hidden] { display: none; }
+.power-actions .btn {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.power-actions .btn.power-btn-out {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.92);
+  pointer-events: none;
+}
+.power-actions .btn.power-btn-in { animation: power-btn-in 0.22s ease-out; }
+@keyframes power-btn-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .power-actions .btn { transition: none; }
+  .power-actions .btn.power-btn-in { animation: none; }
+}
+@media (max-width: 720px) {
+  .power-actions { min-width: 0 !important; flex-wrap: wrap !important; }
+}
+
 /* CONTAINER */
 .container {
   max-width: var(--max-w);
@@ -1355,6 +1381,9 @@ button.btn {
   color: #ef4444;
   border-color: rgba(239, 68, 68, 0.3);
 }
+
+/* Breadcrumb separators in the server Files path */
+.file-path-chevron { color: var(--text-muted); flex: 0 0 auto; }
 
 /* Files table column layout (name left, size center, modified right) */
 .files-table {
@@ -2308,7 +2337,7 @@ button.btn {
   border-radius: 6px;
   color: var(--text-muted);
   cursor: grab;
-  opacity: 0.5;
+  opacity: 0;
   transition: opacity 0.15s, background 0.15s, color 0.15s;
 }
 
@@ -2616,12 +2645,6 @@ button.btn {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--surface);
-}
-
-.manage-node-summary {
-  margin-top: 14px;
-  font-size: 12px;
-  color: var(--text-muted);
 }
 
 .manage-danger-footer {
@@ -6749,4 +6772,28 @@ html[data-theme="light"] .main-content::after {
   .topbar--server .topbar-user { display: none; }
   .topbar-server { max-width: 200px; gap: 9px; }
   .topbar-server-name { font-size: 14px; }
+}
+
+/* First-run installer: the panel's own logo reflection, replayed on every hover.
+   Everything else on the page stays still. */
+/* The shared nav media box is 32px; the auth logo is 40px. Match both boxes
+   so the masked reflection lines up with the image it is painted over. */
+.install-card .nav-logo-media {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+}
+
+.install-card .nav-logo-media img {
+  filter: none;
+}
+
+.install-card .nav-logo-media:hover::after {
+  animation: nav-logo-reflection 900ms cubic-bezier(0.22, 0.7, 0.25, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .install-card .nav-logo-media:hover::after {
+    animation: none;
+  }
 }

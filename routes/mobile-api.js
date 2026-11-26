@@ -44,7 +44,7 @@ function publicUser(u) {
 
 function panelInfo() {
   return {
-    name: db.getSetting('site_name', 'Panel'),
+    name: db.getSetting('site_name', 'Pyloxdactyl'),
     version: require('../package.json').version,
   };
 }
@@ -244,7 +244,7 @@ function liveStats(uuid) {
     let status = typeof stats.status === 'string' ? stats.status : null;
     if (status === 'not_created') status = 'offline';
     let uptime = 0;
-    if (status === 'running' && stats.startedAt) {
+    if ((status === 'running' || status === 'starting') && stats.startedAt) {
       const since = new Date(stats.startedAt).getTime();
       if (!isNaN(since) && since > 0) uptime = Math.max(0, Math.floor((Date.now() - since) / 1000));
     }
@@ -352,7 +352,7 @@ router.post('/me/2fa/setup', auth, async (req, res) => {
     const secret = totp.generateSecret();
     db.prepare('UPDATE users SET totp_secret = ?, totp_enabled = 0 WHERE id = ?').run(secret, req.user.id);
     try { db.save(); } catch (_) {}
-    const issuer = db.getSetting('site_name', 'Panel');
+    const issuer = db.getSetting('site_name', 'Pyloxdactyl');
     const otpauth = totp.otpauthUrl(secret, req.user.email, issuer);
     const QRCode = require('qrcode');
     const qr = await QRCode.toDataURL(otpauth, { margin: 1, width: 240 });
@@ -1493,9 +1493,9 @@ const SETTINGS_KEYS = [
 ];
 
 const SETTINGS_DEFAULTS = {
-  site_name: 'Panel', timezone: 'UTC', default_language: 'en', two_factor_auth: 'None',
+  site_name: 'Pyloxdactyl', timezone: 'UTC', default_language: 'en', two_factor_auth: 'None',
   smtp_host: '', smtp_port: '587', smtp_encryption: 'tls', smtp_username: '',
-  smtp_from_email: '', smtp_from_name: 'Panel', captcha_provider: 'Disabled',
+  smtp_from_email: '', smtp_from_name: 'Pyloxdactyl', captcha_provider: 'Disabled',
   cloudflare_turnstile_site_key: '', cloudflare_turnstile_secret_key: '',
   hcaptcha_site_key: '', hcaptcha_secret_key: '',
   google_recaptcha_site_key: '', google_recaptcha_secret_key: '',

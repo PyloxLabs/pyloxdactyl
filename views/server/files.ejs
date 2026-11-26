@@ -39,13 +39,13 @@
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
       <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-muted)">
         <input type="checkbox" id="select-all" class="file-select-all" title="<%= t('server.files.selectAll') %>">
-        <div style="display:flex;align-items:center;gap:6px;background:var(--surface);padding:2px 8px;border-radius:4px;font-size:13px">
+        <div class="file-path-breadcrumb" style="display:flex;align-items:center;gap:6px;font-size:14px">
           <%
             let pathSegments = [];
-            if (currentPath === '/' || currentPath === '') {
+            if (fileDir === '/' || fileDir === '') {
               pathSegments = [];
             } else {
-              let clean = currentPath;
+              let clean = fileDir;
               if (clean.startsWith('/')) clean = clean.substring(1);
               if (clean.endsWith('/')) clean = clean.substring(0, clean.length - 1);
               pathSegments = clean ? clean.split('/') : [];
@@ -53,12 +53,12 @@
           %>
           <a href="/server/<%= server.id %>/files?dir=/" data-navigate-folder style="color:var(--text);text-decoration:none;cursor:pointer">root</a>
           <% if (pathSegments.length > 0) { %>
-            <span style="color:var(--text-muted)">></span>
+            <svg class="file-path-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
             <% pathSegments.forEach((seg, idx) => {
               let segmentPath = '/' + pathSegments.slice(0, idx + 1).join('/');
             %>
               <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(segmentPath) %>" data-navigate-folder style="color:var(--text);text-decoration:none;cursor:pointer"><%= seg %></a>
-              <% if (idx < pathSegments.length - 1) { %><span style="color:var(--text-muted)">></span><% } %>
+              <% if (idx < pathSegments.length - 1) { %><svg class="file-path-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg><% } %>
             <% }); %>
           <% } %>
         </div>
@@ -71,8 +71,8 @@
       </div>
     </div>
 
-    <% if (currentPath !== '/') { %>
-      <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(currentPath.split('/').slice(0, -1).join('/') || '/') %>" data-navigate-folder style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);text-decoration:none;margin-bottom:12px">
+    <% if (fileDir !== '/') { %>
+      <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(fileDir.split('/').slice(0, -1).join('/') || '/') %>" data-navigate-folder style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);text-decoration:none;margin-bottom:12px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg> <%= t('common.back') %>
       </a>
     <% } %>
@@ -81,12 +81,12 @@
       <table class="table files-table">
         <thead><tr><th class="file-col-check"></th><th class="file-col-name"><%= t('common.name') %></th><th class="file-col-size"><%= t('server.files.colSize') %></th><th class="file-col-modified"><%= t('server.files.colModified') %></th></tr></thead>
         <tbody>
-          <% files.forEach(f => { const fullPath = (currentPath === '/' ? '/' : currentPath + '/') + f.name; %>
+          <% files.forEach(f => { const fullPath = (fileDir === '/' ? '/' : fileDir + '/') + f.name; %>
             <tr class="<%= 'file-row' %>">
               <td class="file-col-check"><input type="checkbox" class="file-check" data-name="<%= f.name %>"></td>
               <td class="file-col-name">
                 <% if (f.isDirectory) { %>
-                  <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(currentPath === '/' ? '/' + f.name : currentPath + '/' + f.name) %>" data-navigate-folder style="display:flex;align-items:center;gap:10px">
+                  <a href="/server/<%= server.id %>/files?dir=<%= encodeURIComponent(fileDir === '/' ? '/' + f.name : fileDir + '/' + f.name) %>" data-navigate-folder style="display:flex;align-items:center;gap:10px">
                     <span class="file-icon folder">
                       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
                     </span>
@@ -123,7 +123,7 @@
                   <% } %>
                   <form method="POST" action="/server/<%= server.id %>/files/delete" data-confirm="<%= f.isDirectory ? t('server.files.deleteFolderConfirm') : t('server.files.deleteFileConfirm') %>">
                     <input type="hidden" name="file" value="<%= fullPath %>">
-                    <input type="hidden" name="dir" value="<%= currentPath %>">
+                    <input type="hidden" name="dir" value="<%= fileDir %>">
                     <button type="submit" data-action="delete" title="<%= t('common.delete') %>"></button>
                   </form>
                 </div>
@@ -146,7 +146,7 @@
     <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
     <h3><%= t('server.files.newFolder') %></h3>
     <form method="POST" action="/server/<%= server.id %>/files/mkdir">
-      <input type="hidden" name="dir" value="<%= currentPath %>">
+      <input type="hidden" name="dir" value="<%= fileDir %>">
       <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="name" required autofocus></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
@@ -161,7 +161,7 @@
     <button class="modal-close" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }">&times;</button>
     <h3><%= t('server.files.newFile') %></h3>
     <form method="GET" action="/server/<%= server.id %>/files/edit" id="new-file-form">
-      <input type="hidden" name="path" value="<%= currentPath === '/' ? '/' : currentPath + '/' %>">
+      <input type="hidden" name="path" value="<%= fileDir === '/' ? '/' : fileDir + '/' %>">
       <div class="form-group"><label><%= t('common.name') %></label><input type="text" name="newfile" required autofocus></div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="var o=this.closest('.modal-overlay'); if(o){ o.classList.add('closing'); setTimeout(function(){ o.classList.remove('active'); o.classList.remove('closing'); }, 300); }"><%= t('common.cancel') %></button>
@@ -276,7 +276,7 @@
 <script>
 (function () {
   var serverId = <%= server.id %>;
-  var currentDir = '<%= currentPath %>';
+  var currentDir = '<%= fileDir %>';
   var selectAll = document.getElementById('select-all');
   var fileChecks = Array.prototype.slice.call(document.querySelectorAll('.file-check'));
 
@@ -444,19 +444,20 @@
   function navigateToDir(dir) {
     var url = '/server/' + serverId + '/files?dir=' + encodeURIComponent(dir);
     history.pushState({ mode: 'files', dir: dir }, '', url);
+    if (window.pyloxSectionUpdateKey) window.pyloxSectionUpdateKey(new URL(url, window.location.origin));
     fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
       .then(function(res) { return res.text(); })
       .then(function(html) {
         var parser = new DOMParser();
         var doc = parser.parseFromString(html, 'text/html');
         var newTableBody = doc.querySelector('.files-table tbody');
-        var newBreadcrumb = doc.querySelector('div[style*="gap:6px;background:var(--surface)"]');
+        var newBreadcrumb = doc.querySelector('.file-path-breadcrumb');
         var newBackLink = doc.querySelector('a[href*="/files?dir="][style*="margin-bottom:12px"]');
         if (newTableBody && document.querySelector('.files-table tbody')) {
           document.querySelector('.files-table tbody').innerHTML = newTableBody.innerHTML;
         }
         if (newBreadcrumb) {
-          var oldBreadcrumb = document.querySelector('div[style*="gap:6px;background:var(--surface)"]');
+          var oldBreadcrumb = document.querySelector('.file-path-breadcrumb');
           if (oldBreadcrumb) oldBreadcrumb.innerHTML = newBreadcrumb.innerHTML;
         }
         if (newBackLink) {

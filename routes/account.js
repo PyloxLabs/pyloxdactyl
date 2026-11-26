@@ -68,7 +68,7 @@ router.post('/2fa/setup', async (req, res) => {
     const secret = totp.generateSecret();
     db.prepare('UPDATE users SET totp_secret = ?, totp_enabled = 0 WHERE id = ?').run(secret, req.user.id);
     db.save();
-    const issuer = (db.getSetting && db.getSetting('site_name', 'Panel')) || 'Panel';
+    const issuer = (db.getSetting && db.getSetting('site_name', 'Pyloxdactyl')) || 'Pyloxdactyl';
     const otpauth = totp.otpauthUrl(secret, req.user.email, issuer);
     const qr = await QRCode.toDataURL(otpauth, { margin: 1, width: 240 });
     res.json({ ok: true, secret, otpauth, qr });

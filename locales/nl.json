@@ -746,7 +746,6 @@
       "transferDesc": "Kies het doelknooppunt. De server wordt van het huidige knooppunt verwijderd en op het nieuwe opnieuw geïnstalleerd.",
       "transferNodeLabel": "Doelknooppunt",
       "transferNodePlaceholder": "Selecteer een knooppunt",
-      "nodeSummary": "Node: {name} (geheugen {memoryUsed}/{memoryTotal}MB, schijf {diskUsed}/{diskTotal}MB)",
       "deleteConfirm": "Deze server PERMANENT verwijderen? Dit kan niet ongedaan worden gemaakt.",
       "deleteServerButton": "Server verwijderen",
       "tabsLabel": "Serversecties",

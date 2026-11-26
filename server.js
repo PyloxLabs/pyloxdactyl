@@ -108,6 +108,7 @@ const gravatarUrl = (email, size = 64, fallback = 'identicon') => {
 app.use((req, res, next) => {
   res.locals.user = null;
   res.locals.isLoggedIn = false;
+  res.locals.isFirstRun = db.isFirstRun ? db.isFirstRun() : false;
   if (req.session && req.session.userId) {
     const u = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
     if (u) { res.locals.user = u; res.locals.isLoggedIn = true; }
@@ -132,7 +133,7 @@ app.use((req, res, next) => {
   res.locals.gravatar = gravatarUrl;
   res.locals.currentPath = req.path;
   res.locals.baseUrl = baseurl.resolveBaseUrl(req);
-  res.locals.siteName = (db.getSetting && db.getSetting('site_name', 'Panel')) || 'Panel';
+  res.locals.siteName = (db.getSetting && db.getSetting('site_name', 'Pyloxdactyl')) || 'Pyloxdactyl';
   res.locals.favicon = (db.getSetting && db.getSetting('branding_favicon', '/static/img/Pylox_no_bg.png')) || '/static/img/Pylox_no_bg.png';
   res.locals.pageLogo = (db.getSetting && db.getSetting('branding_page_logo', '/static/img/Pylox_no_bg.png')) || '/static/img/Pylox_no_bg.png';
   res.locals.panelVersion = (require('./package.json').version) || '0.0.0';
@@ -147,6 +148,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/auth', require('./routes/auth'));
+app.use('/install', require('./routes/install'));
 app.use('/dashboard', require('./routes/dashboard'));
 app.use('/server', require('./routes/server'));
 app.use('/admin', require('./routes/admin'));
@@ -161,6 +163,7 @@ app.use(extensions.middleware);
 
 // Root redirect
 app.get('/', (req, res) => {
+  if (db.isFirstRun()) return res.redirect('/install');
   if (req.session && req.session.userId) return res.redirect('/dashboard');
   res.redirect('/auth/login');
 });
@@ -232,6 +235,7 @@ function resolveConsoleUser(req) {
 wss.on('connection', async (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const serverUuid = url.searchParams.get('server');
+  const clientWantsHistory = url.searchParams.get('replay') !== '0';
   if (!serverUuid) { ws.close(); return; }
 
   const srv = db.prepare('SELECT * FROM servers WHERE uuid = ?').get(serverUuid);
@@ -278,9 +282,14 @@ wss.on('connection', async (ws, req) => {
 
   let dws = null;
   let reconnecting = false;
+  let daemonHistorySent = false;
 
   const connectDaemon = () => {
-    dws = daemonLib.connectConsoleWs(serverUuid);
+    // Replay history once per panel client session. Daemon reconnects and
+    // browser socket reconnects must not paste the same log block again.
+    const replay = clientWantsHistory && !daemonHistorySent;
+    if (replay) daemonHistorySent = true;
+    dws = daemonLib.connectConsoleWs(serverUuid, { replay });
     if (!dws) { ws.send(t('server.ws.couldNotConnect')); ws.close(); return; }
 
     dws.on('open', () => {

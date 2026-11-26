@@ -9,12 +9,18 @@ const mailer = require('../lib/mailer');
 const baseurl = require('../lib/baseurl');
 const { guestOnly } = require('../middleware/auth');
 
-router.get('/login', guestOnly, (req, res) => {
+// On a fresh install the panel URL must lead to setup, not the login form.
+function redirectToInstall(req, res, next) {
+  if (db.isFirstRun && db.isFirstRun()) return res.redirect('/install');
+  next();
+}
+
+router.get('/login', guestOnly, redirectToInstall, (req, res) => {
   const require2fa = !!(req.session && req.session.pending2faUserId);
   res.render('auth/login', { error: null, require2fa });
 });
 
-router.post('/login', guestOnly, (req, res) => {
+router.post('/login', guestOnly, redirectToInstall, (req, res) => {
   const { email, password, totp: totpCode } = req.body || {};
 
   if (req.session && req.session.pending2faUserId) {
@@ -43,11 +49,11 @@ router.post('/login', guestOnly, (req, res) => {
   res.redirect('/dashboard');
 });
 
-router.get('/register', guestOnly, (req, res) => {
+router.get('/register', guestOnly, redirectToInstall, (req, res) => {
   res.render('auth/register', { error: null });
 });
 
-router.post('/register', guestOnly, (req, res) => {
+router.post('/register', guestOnly, redirectToInstall, (req, res) => {
   const { username, email, password, password_confirm } = req.body;
   if (!username || !email || !password) {
     return res.render('auth/register', { error: req.t('routes.auth.allFieldsRequired') });
@@ -65,6 +71,8 @@ router.post('/register', guestOnly, (req, res) => {
   const hash = bcrypt.hashSync(password, 10);
   const isFirstUser = db.prepare('SELECT COUNT(*) as c FROM users').get().c === 0;
   db.prepare('INSERT INTO users (uuid, username, email, password, root_admin) VALUES (?, ?, ?, ?, ?)').run(uuidv4(), username, email, hash, isFirstUser ? 1 : 0);
+  // Creating the first account through the regular register page also finishes setup.
+  if (isFirstUser && db.markInstalled) db.markInstalled();
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   req.session.userId = user.id;
   res.redirect('/dashboard');
@@ -97,7 +105,7 @@ router.post('/forgot-password', guestOnly, async (req, res) => {
     const expires = Math.floor((Date.now() + RESET_TOKEN_TTL_MS) / 1000);
     db.prepare('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id = ?').run(token, String(expires), user.id);
 
-    const siteName = db.getSetting('site_name', 'Panel');
+    const siteName = db.getSetting('site_name', 'Pyloxdactyl');
     const baseUrl = baseurl.resolveBaseUrl(req);
     const link = `${baseUrl}/auth/reset-password?token=${token}`;
 

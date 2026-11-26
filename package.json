@@ -9,7 +9,7 @@
     "daemon": "node daemon/daemon.js",
     "migrate": "node lib/db.js",
     "setup": "npm install && node lib/db.js",
-    "test": "node --test daemon/core/crash.test.js"
+    "test": "node --test tests/install.test.js daemon/core/crash.test.js daemon/core/docker.test.js daemon/core/console.test.js"
   },
   "dependencies": {
     "archiver": "^6.0.1",

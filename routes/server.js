@@ -59,7 +59,7 @@ router.get('/:serverId', authRequired, serverAccess, async (req, res) => {
     daemonConnected = !!(stats && (typeof stats.status === 'string' || stats.cpu !== undefined));
     if (daemonConnected) {
       status = typeof stats.status === 'string' ? stats.status : 'not_created';
-      if (status === 'running' && stats.startedAt) {
+      if ((status === 'running' || status === 'starting') && stats.startedAt) {
         const since = new Date(stats.startedAt).getTime();
         if (!isNaN(since) && since > 0) uptime = Math.max(0, Math.floor((Date.now() - since) / 1000));
       }
@@ -113,7 +113,7 @@ router.get('/:serverId/files', authRequired, serverAccess, requirePermission('fi
     filesError = e.message || 'Could not load files from the node.';
   }
 
-  res.render('server/files', { files, currentPath: dirPath, isExecutable, isCompressed, filesError });
+  res.render('server/files', { files, fileDir: dirPath, isExecutable, isCompressed, filesError });
 });
 
 // File upload
@@ -706,7 +706,7 @@ router.get('/:serverId/api/resources', authRequired, serverAccess, requirePermis
     if (resources && (typeof resources.status === 'string' || resources.cpu !== undefined)) {
       connected = true;
       if (typeof resources.status === 'string') status = resources.status;
-      if (status === 'running' && resources.startedAt) {
+      if ((status === 'running' || status === 'starting') && resources.startedAt) {
         const since = new Date(resources.startedAt).getTime();
         if (!isNaN(since) && since > 0) uptime = Math.max(0, Math.floor((Date.now() - since) / 1000));
       }

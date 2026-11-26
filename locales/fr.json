@@ -746,7 +746,6 @@
       "transferDesc": "Choisissez le nœud de destination. Le serveur sera supprimé de son nœud actuel et réinstallé sur le nouveau.",
       "transferNodeLabel": "Nœud de destination",
       "transferNodePlaceholder": "Sélectionner un nœud",
-      "nodeSummary": "Nœud : {name} (mémoire {memoryUsed}/{memoryTotal}MB, disque {diskUsed}/{diskTotal}MB)",
       "deleteConfirm": "Supprimer ce serveur de manière DÉFINITIVE ? Cette action est irréversible.",
       "deleteServerButton": "Supprimer le serveur",
       "tabsLabel": "Sections du serveur",

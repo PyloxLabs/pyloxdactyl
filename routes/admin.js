@@ -559,15 +559,12 @@ router.get('/servers/:id', (req, res) => {
     }
   }
 
-  const memAlloc = db.prepare('SELECT COALESCE(SUM(memory),0) as c FROM servers WHERE node_id = ?').get(srvServer.node_id).c;
-  const diskAlloc = db.prepare('SELECT COALESCE(SUM(disk),0) as c FROM servers WHERE node_id = ?').get(srvServer.node_id).c;
-  const nodeData = nodes.find(n => n.id === srvServer.node_id) || null;
   // Transfer is only possible when another node exists besides the current one.
   const otherNodes = nodes.filter(n => Number(n.id) !== Number(srvServer.node_id));
 
   res.render('admin/server-edit', {
     section: 'servers', srvServer, users, nodes, eggs, nests,
-    freeAllocs, srvAllocs, databases, eggVars, memAlloc, diskAlloc, nodeData,
+    freeAllocs, srvAllocs, databases, eggVars,
     eggImagesByEgg, eggImages, selectedImage, isCustomImage,
     otherNodes, canTransfer: otherNodes.length > 0,
   });
@@ -1129,7 +1126,7 @@ router.post('/eggs/:id/delete', (req, res) => {
 // ── Panel Settings ──────────────────────────────────────────────
 router.get('/settings', (req, res) => {
   const settings = {
-    site_name: db.getSetting('site_name', 'Panel'),
+    site_name: db.getSetting('site_name', 'Pyloxdactyl'),
     timezone: db.getSetting('timezone', 'UTC'),
     default_language: db.getSetting('default_language', 'en'),
     show_server_description: db.getSetting('show_server_description', '1'),
@@ -1140,7 +1137,7 @@ router.get('/settings', (req, res) => {
     smtp_username: db.getSetting('smtp_username', ''),
     smtp_password: db.getSetting('smtp_password', ''),
     smtp_from_email: db.getSetting('smtp_from_email', ''),
-    smtp_from_name: db.getSetting('smtp_from_name', 'Panel'),
+    smtp_from_name: db.getSetting('smtp_from_name', 'Pyloxdactyl'),
     captcha_provider: db.getSetting('captcha_provider', 'Disabled'),
     cloudflare_turnstile_site_key: db.getSetting('cloudflare_turnstile_site_key', ''),
     cloudflare_turnstile_secret_key: db.getSetting('cloudflare_turnstile_secret_key', ''),
@@ -1157,7 +1154,7 @@ router.get('/settings', (req, res) => {
 router.post('/settings', brandUpload.fields([{ name: 'page_logo' }, { name: 'favicon' }]), (req, res) => {
   const { site_name, timezone, default_language, show_server_description, two_factor_auth, smtp_host, smtp_port, smtp_encryption, smtp_username, smtp_password, smtp_from_email, smtp_from_name, captcha_provider, cloudflare_turnstile_site_key, cloudflare_turnstile_secret_key, hcaptcha_site_key, hcaptcha_secret_key, google_recaptcha_site_key, google_recaptcha_secret_key } = req.body;
 
-  db.setSetting('site_name', site_name || 'Panel');
+  db.setSetting('site_name', site_name || 'Pyloxdactyl');
   db.setSetting('timezone', timezone || 'UTC');
   db.setSetting('default_language', default_language || 'en');
   db.setSetting('show_server_description', show_server_description === '0' ? '0' : '1');
@@ -1168,7 +1165,7 @@ router.post('/settings', brandUpload.fields([{ name: 'page_logo' }, { name: 'fav
   db.setSetting('smtp_username', smtp_username || '');
   if (smtp_password) db.setSetting('smtp_password', smtp_password);
   db.setSetting('smtp_from_email', smtp_from_email || '');
-  db.setSetting('smtp_from_name', smtp_from_name || 'Panel');
+  db.setSetting('smtp_from_name', smtp_from_name || 'Pyloxdactyl');
   db.setSetting('captcha_provider', ['Disabled', 'Cloudflare Turnstile', 'HCaptcha', 'Google Recaptcha'].includes(captcha_provider) ? captcha_provider : 'Disabled');
   db.setSetting('cloudflare_turnstile_site_key', cloudflare_turnstile_site_key || '');
   db.setSetting('cloudflare_turnstile_secret_key', cloudflare_turnstile_secret_key || '');
@@ -1215,12 +1212,12 @@ router.post('/settings/test-smtp', (req, res) => {
     username: String(req.body.smtp_username || '').trim(),
     password: req.body.smtp_password || db.getSetting('smtp_password', ''),
     fromEmail: String(req.body.smtp_from_email || '').trim(),
-    fromName: String(req.body.smtp_from_name || 'Panel').trim(),
+    fromName: String(req.body.smtp_from_name || 'Pyloxdactyl').trim(),
   };
   if (!cfg.host || !cfg.fromEmail) {
     return res.status(400).json({ error: req.t('admin.settings.testConfigError') });
   }
-  const siteName = db.getSetting('site_name', 'Panel');
+  const siteName = db.getSetting('site_name', 'Pyloxdactyl');
   const baseUrl = baseurl.resolveBaseUrl(req);
   mailer.sendTemplateEmail({
     to: req.user.email,

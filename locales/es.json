@@ -265,7 +265,7 @@
     "noResults": "Ningún servidor coincide con tus filtros.",
     "sortCustom": "Orden personalizado",
     "dragToReorder": "Arrastrar para reordenar",
-    "dropHere": "Sueltar aquí"
+    "dropHere": "Soltar aquí"
   },
   "server": {
     "suspended": {
@@ -746,7 +746,6 @@
       "transferDesc": "Elige el nodo de destino. El servidor se eliminará de su nodo actual y se reinstalará en el nuevo.",
       "transferNodeLabel": "Nodo de destino",
       "transferNodePlaceholder": "Seleccionar un nodo",
-      "nodeSummary": "Nodo: {name} (mem {memoryUsed}/{memoryTotal}MB, disco {diskUsed}/{diskTotal}MB)",
       "deleteConfirm": "¿ELIMINAR DEFINITIVAMENTE este servidor? Esta acción no se puede deshacer.",
       "deleteServerButton": "Eliminar servidor",
       "tabsLabel": "Secciones del servidor",

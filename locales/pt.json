@@ -746,7 +746,6 @@
       "transferDesc": "Escolha o nó de destino. O servidor será removido do nó atual e reinstalado no novo.",
       "transferNodeLabel": "Nó de destino",
       "transferNodePlaceholder": "Selecionar um nó",
-      "nodeSummary": "Nó: {name} (mem {memoryUsed}/{memoryTotal}MB, disco {diskUsed}/{diskTotal}MB)",
       "deleteConfirm": "Excluir PERMANENTEMENTE este servidor? Isso não pode ser desfeito.",
       "deleteServerButton": "Excluir Servidor",
       "tabsLabel": "Seções do servidor",

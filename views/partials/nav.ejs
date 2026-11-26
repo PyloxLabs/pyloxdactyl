@@ -68,6 +68,10 @@
   var topbarServerTone = 'red';
   if (topbarServerStatus === 'running') topbarServerTone = 'green';
   else if (['starting', 'stopping', 'installing', 'pending'].includes(topbarServerStatus)) topbarServerTone = 'yellow';
+  var topbarCanViewConsole = typeof serverPermissions === 'undefined' || serverPermissions === null
+    || (Array.isArray(serverPermissions) && serverPermissions.indexOf('console.view') !== -1);
+  var topbarEulaEnabled = !!(topbarIsServer && server && !server.suspended && topbarCanViewConsole);
+  var topbarEulaConsolePage = !!(topbarEulaEnabled && currentPath === '/server/' + server.id);
 %>
 <header class="topbar<%= topbarIsServer ? ' topbar--server' : '' %>">
   <div class="topbar-inner">
@@ -82,6 +86,131 @@
     <% } %>
   </div>
 </header>
+<% if (topbarEulaEnabled) { %>
+<div class="modal-overlay" id="eula-modal">
+  <div class="modal">
+    <h3><%= t('server.console.eulaTitle') %></h3>
+    <p style="color:var(--text-muted);font-size:14px;line-height:1.6"><%= t('server.console.eulaMessage') %></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" onclick="window.pyloxEula.submit('decline')"><%= t('common.cancel') %></button>
+      <button type="button" class="btn btn-primary" onclick="window.pyloxEula.submit('accept')"><%= t('server.console.eulaAccept') %></button>
+    </div>
+  </div>
+</div>
+<script>
+(() => {
+  const serverId = '<%= server.id %>';
+  const serverUuid = '<%= server.uuid %>';
+  const consolePage = <%= topbarEulaConsolePage ? 'true' : 'false' %>;
+  const eulaLine = 'You need to agree to the EULA in order to run the server';
+  let eulaPrompted = false;
+  let eulaCloseTimer = null;
+  let watcher = null;
+  let watcherTimer = null;
+  let usingConsoleFeed = consolePage;
+
+  function setTopbarStatus(status) {
+    const dot = document.getElementById('topbar-server-dot');
+    const bar = document.getElementById('topbar-server');
+    if (!dot || !bar) return;
+    const pending = ['starting', 'stopping', 'installing', 'pending'].includes(status);
+    dot.className = 'topbar-server-dot topbar-server-dot--' + (status === 'running' ? 'green' : pending ? 'yellow' : 'red');
+    bar.title = status;
+  }
+
+  function showEulaModal() {
+    const el = document.getElementById('eula-modal');
+    if (!el) return;
+    clearTimeout(eulaCloseTimer);
+    el.classList.remove('closing');
+    requestAnimationFrame(() => el.classList.add('active'));
+  }
+
+  function closeEulaModal() {
+    const el = document.getElementById('eula-modal');
+    if (!el) return;
+    el.classList.add('closing');
+    clearTimeout(eulaCloseTimer);
+    eulaCloseTimer = setTimeout(() => {
+      el.classList.remove('active');
+      el.classList.remove('closing');
+    }, 300);
+  }
+
+  async function maybePromptEula() {
+    if (eulaPrompted) return;
+    eulaPrompted = true;
+    try {
+      const res = await fetch(`/server/${serverId}/eula`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      const data = await res.json().catch(() => ({}));
+      if (data && data.accepted) return;
+    } catch {}
+    showEulaModal();
+  }
+
+  function checkLine(line) {
+    if (String(line).indexOf(eulaLine) !== -1) maybePromptEula();
+  }
+
+  async function submit(action) {
+    closeEulaModal();
+    try {
+      const res = await fetch(`/server/${serverId}/eula`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.ok === false && window.showToast) {
+        window.showToast(data.error || window.t('server.console.eulaFailed'));
+      } else {
+        setTopbarStatus(action === 'accept' ? 'starting' : 'offline');
+      }
+    } catch {}
+    eulaPrompted = false;
+  }
+
+  function closeWatcher() {
+    clearTimeout(watcherTimer);
+    watcherTimer = null;
+    if (watcher) {
+      try { watcher.close(); } catch (_) {}
+      watcher = null;
+    }
+  }
+
+  function connectWatcher() {
+    // The console page feeds us every line it renders, so it does not need a
+    // second daemon attachment just to watch for the EULA notice.
+    if (usingConsoleFeed) return;
+    if (watcher && (watcher.readyState === WebSocket.OPEN || watcher.readyState === WebSocket.CONNECTING)) return;
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    // Replay history here too: if the EULA was logged before this tab opened,
+    // the modal should still appear while the user is on Files/settings/etc.
+    watcher = new WebSocket(`${protocol}//${location.host}/ws/console?server=${serverUuid}&replay=1`);
+    watcher.onmessage = (e) => checkLine(e.data);
+    watcher.onclose = () => {
+      watcher = null;
+      if (usingConsoleFeed) return;
+      clearTimeout(watcherTimer);
+      watcherTimer = setTimeout(connectWatcher, 3000);
+    };
+  }
+
+  window.pyloxEula = {
+    checkLine,
+    reset() { eulaPrompted = false; },
+    useConsoleFeed() {
+      usingConsoleFeed = true;
+      closeWatcher();
+    },
+    submit,
+  };
+
+  if (!consolePage) connectWatcher();
+})();
+</script>
+<% } %>
 <% if (isLoggedIn && user) { %>
 <div class="dropside-overlay" id="user-dropside-overlay"></div>
 <aside class="dropside user-dropside" id="user-dropside" role="dialog" aria-modal="true" aria-labelledby="user-dropside-name" aria-hidden="true">

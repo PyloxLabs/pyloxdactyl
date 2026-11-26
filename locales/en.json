@@ -156,6 +156,17 @@
       "loginNow": "Sign in with your new password"
     }
   },
+  "install": {
+    "status": "First boot",
+    "welcome": "Welcome to {siteName}",
+    "intro": "Finish setting up the panel. Create the root administrator to secure this installation and start managing your servers.",
+    "admin": {
+      "title": "Create the root administrator",
+      "desc": "This account has full access to every panel and node setting.",
+      "submit": "Create administrator",
+      "footnote": "Additional users, nodes and servers can be added after signing in."
+    }
+  },
   "account": {
     "apiKeys": {
       "subtitle": "Manage your API keys for external integrations",
@@ -675,7 +686,7 @@
       "generalTitle": "General",
       "generalDesc": "Basic information that identifies your panel.",
       "panelName": "Panel Name",
-      "panelNamePlaceholder": "Pylox Panel",
+      "panelNamePlaceholder": "Pyloxdactyl",
       "appUrl": "Application URL",
       "appUrlPlaceholder": "https://panel.example.com",
       "appUrlHint": "The URL users visit to reach this panel. Used in emails and API links.",
@@ -700,7 +711,7 @@
       "smtpExampleHost": "smtp.example.com",
       "smtpExampleUser": "user@example.com",
       "smtpExampleNoReply": "no-reply@example.com",
-      "smtpExampleName": "Panel",
+      "smtpExampleName": "Pyloxdactyl",
       "testButton": "Test SMTP",
       "testAlert": "SMTP test functionality not yet implemented in this build.",
       "captchaTitle": "Captcha Provider",
@@ -800,7 +811,6 @@
       "transferDesc": "Choose the destination node. The server will be removed from its current node and reinstalled on the new one.",
       "transferNodeLabel": "Destination Node",
       "transferNodePlaceholder": "Select a node",
-      "nodeSummary": "Node: {name} (mem {memoryUsed}/{memoryTotal}MB, disk {diskUsed}/{diskTotal}MB)",
       "deleteConfirm": "PERMANENTLY delete this server? This cannot be undone.",
       "deleteServerButton": "Delete Server",
       "customImage": "Custom",

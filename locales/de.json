@@ -746,7 +746,6 @@
       "transferDesc": "Wähle den Zielknoten. Der Server wird von seinem aktuellen Knoten entfernt und auf dem neuen neu installiert.",
       "transferNodeLabel": "Zielknoten",
       "transferNodePlaceholder": "Knoten auswählen",
-      "nodeSummary": "Node: {name} (RAM {memoryUsed}/{memoryTotal}MB, Speicherplatz {diskUsed}/{diskTotal}MB)",
       "deleteConfirm": "Diesen Server PERMANENT löschen? Dies kann nicht rückgängig gemacht werden.",
       "deleteServerButton": "Server löschen",
       "tabsLabel": "Serverbereiche",

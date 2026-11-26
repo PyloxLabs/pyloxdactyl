@@ -1,0 +1,52 @@
+<%- include('../partials/head') %>
+<body>
+<%- include('../partials/auth-theme-toggle') %>
+<div class="auth-page">
+  <div class="auth-card install-card">
+    <div class="auth-side">
+      <div class="logo">
+        <span class="nav-logo-media" style="--logo-url: url('<%= pageLogo %>')">
+          <img src="<%= pageLogo %>" alt="<%= siteName %>" style="object-fit:contain;border-radius:8px">
+        </span>
+        <span><%= siteName %></span>
+        <span class="badge badge-purple"><%= t('install.status') %></span>
+      </div>
+      <h2><%= t('install.welcome', { siteName }) %></h2>
+      <p class="subtitle"><%= t('install.intro') %></p>
+    </div>
+    <div class="auth-main">
+      <% if (error) { %>
+        <div class="alert alert-error"><%= error %></div>
+      <% } %>
+      <div style="margin-bottom:22px">
+        <h3 style="font-size:17px;font-weight:600;margin-bottom:6px"><%= t('install.admin.title') %></h3>
+        <p style="font-size:13px;color:var(--text-muted)"><%= t('install.admin.desc') %></p>
+      </div>
+      <form method="POST" action="/install">
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="install-username"><%= t('common.username') %></label>
+            <input id="install-username" type="text" name="username" value="<%= values.username %>" placeholder="<%= t('auth.register.usernamePlaceholder') %>" required autocomplete="username" autofocus>
+          </div>
+          <div class="form-group">
+            <label for="install-email"><%= t('common.email') %></label>
+            <input id="install-email" type="email" name="email" value="<%= values.email %>" placeholder="<%= t('common.emailPlaceholder') %>" required autocomplete="email">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label for="install-password"><%= t('common.password') %></label>
+            <input id="install-password" type="password" name="password" placeholder="<%= t('common.passwordPlaceholder') %>" required minlength="8" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label for="install-password-confirm"><%= t('auth.register.confirmPassword') %></label>
+            <input id="install-password-confirm" type="password" name="password_confirm" placeholder="<%= t('common.passwordPlaceholder') %>" required minlength="8" autocomplete="new-password">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary"><%= t('install.admin.submit') %></button>
+      </form>
+      <p class="switch"><%= t('install.admin.footnote') %></p>
+    </div>
+  </div>
+</div>
+</body></html>

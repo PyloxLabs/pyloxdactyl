@@ -193,6 +193,17 @@
     navigate(url, true);
   };
 
+  // The Files tab changes the URL with pushState as folders are opened, but it
+  // keeps the same shell in place. Tell the router that the cached shell now
+  // belongs to that URL; otherwise clicking the Files tab sees a matching
+  // pathname and re-shows the cached folder instead of loading the root.
+  window.pyloxSectionUpdateKey = function (target) {
+    if (!current || !sections[current]) return;
+    var url = target instanceof URL ? target : new URL(String(target), window.location.origin);
+    if (url.pathname !== current) return;
+    sections[current].key = keyOf(url);
+  };
+
   window.addEventListener('popstate', function () {
     var url = new URL(location.href);
     var existing = sections[url.pathname];

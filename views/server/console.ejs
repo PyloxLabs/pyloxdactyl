@@ -10,11 +10,11 @@
       <span id="status-badge" class="badge badge-<%= status === 'running' ? 'green' : status === 'starting' ? 'yellow' : 'red' %>" style="margin-left:4px"><%= status %><% if (status === 'reconnecting') { %><svg class="badge-spinner" viewBox="0 0 50 50" aria-hidden="true"><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="5"></circle><circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-dasharray="31.4 125.6"></circle></svg><% } %></span>
 <% var powerActive = status === 'running' || status === 'starting'; %>
 <% if (!server.suspended) { %>
-      <div style="display:flex;gap:8px;margin-left:auto;flex-wrap:wrap">
-        <button type="button" onclick="powerAction('start')" class="btn btn-primary btn-sm btn-icon" data-power="start" style="<%= powerActive ? 'display:none' : '' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> <%= t('server.console.start') %></button>
-        <button type="button" onclick="powerAction('stop')" class="btn btn-ghost btn-sm btn-icon" data-power="stop" style="<%= powerActive ? '' : 'display:none' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg> <%= t('server.console.stop') %></button>
-        <button type="button" onclick="powerAction('restart')" class="btn btn-ghost btn-sm btn-icon" data-power="restart" style="<%= powerActive ? '' : 'display:none' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <%= t('server.console.restart') %></button>
-        <button type="button" onclick="powerAction('kill')" class="btn btn-danger btn-sm btn-icon" data-power="kill" style="<%= powerActive ? '' : 'display:none' %>"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> <%= t('server.console.kill') %></button>
+      <div class="power-actions" style="display:flex;gap:8px;margin-left:auto">
+        <button type="button" onclick="powerAction('start')" class="btn btn-primary btn-sm btn-icon" data-power="start" <%= powerActive ? 'hidden' : '' %>><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg> <%= t('server.console.start') %></button>
+        <button type="button" onclick="powerAction('stop')" class="btn btn-ghost btn-sm btn-icon" data-power="stop" <%= powerActive ? '' : 'hidden' %>><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"/></svg> <%= t('server.console.stop') %></button>
+        <button type="button" onclick="powerAction('restart')" class="btn btn-ghost btn-sm btn-icon" data-power="restart" <%= powerActive ? '' : 'hidden' %>><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> <%= t('server.console.restart') %></button>
+        <button type="button" onclick="powerAction('kill')" class="btn btn-danger btn-sm btn-icon" data-power="kill" <%= powerActive ? '' : 'hidden' %>><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> <%= t('server.console.kill') %></button>
       </div>
 <% } %>
     </div>
@@ -119,17 +119,6 @@
   </div>
 </div>
 
-<div class="modal-overlay" id="eula-modal">
-  <div class="modal">
-    <h3><%= t('server.console.eulaTitle') %></h3>
-    <p style="color:var(--text-muted);font-size:14px;line-height:1.6"><%= t('server.console.eulaMessage') %></p>
-    <div class="modal-actions">
-      <button type="button" class="btn btn-ghost" onclick="declineEula()"><%= t('common.cancel') %></button>
-      <button type="button" class="btn btn-primary" onclick="acceptEula()"><%= t('server.console.eulaAccept') %></button>
-    </div>
-  </div>
-</div>
-
 <script>
 const consoleEl = document.getElementById('console');
 const cmdInput = document.getElementById('cmd-input');
@@ -149,6 +138,7 @@ if (serverAddressEl) {
 // daemon, and dismissed automatically once it comes back online.
 const nodeReconnectModal = document.getElementById('node-reconnect-modal');
 let nodeReconnectShown = false;
+let currentStatus = '<%= status %>';
 
 function setNodeConnected(connected) {
   if (!nodeReconnectModal) return;
@@ -168,10 +158,63 @@ function setNodeConnected(connected) {
   }
 }
 
+let powerButtonsActive = <%= powerActive ? 'true' : 'false' %>;
+let powerSwitchTimer = null;
+
+// Crossfade between Start and the running-state actions. display:none cannot
+// be transitioned, so fade the outgoing buttons first, then swap visibility
+// and play a short entrance animation on the incoming ones.
+function setPowerButtons(active) {
+  const container = document.querySelector('.power-actions');
+  if (!container) return;
+  if (active === powerButtonsActive && !powerSwitchTimer) return;
+  powerButtonsActive = active;
+  clearTimeout(powerSwitchTimer);
+  const buttons = Array.from(container.querySelectorAll('[data-power]'));
+  const visible = active ? ['stop', 'restart', 'kill'] : ['start'];
+  buttons.forEach((btn) => {
+    if (visible.indexOf(btn.dataset.power) === -1 && !btn.hidden) btn.classList.add('power-btn-out');
+  });
+  powerSwitchTimer = setTimeout(() => {
+    buttons.forEach((btn) => {
+      const show = !serverSuspended && visible.indexOf(btn.dataset.power) !== -1;
+      btn.hidden = !show;
+      btn.classList.remove('power-btn-out', 'power-btn-in');
+      if (show) {
+        void btn.offsetWidth;
+        btn.classList.add('power-btn-in');
+      }
+    });
+    powerSwitchTimer = null;
+  }, 180);
+}
+
+// Reserve the width of the widest button set (Stop / Restart / Kill) so the
+// header never jumps when the single Start button takes its place.
+function reservePowerActionsWidth() {
+  const container = document.querySelector('.power-actions');
+  if (!container) return;
+  const buttons = Array.from(container.querySelectorAll('[data-power]'));
+  const previous = buttons.map((btn) => btn.hidden);
+  buttons.forEach((btn) => {
+    btn.hidden = btn.dataset.power === 'start';
+    btn.style.visibility = 'hidden';
+  });
+  const width = Math.ceil(container.getBoundingClientRect().width);
+  buttons.forEach((btn, index) => {
+    btn.hidden = previous[index];
+    btn.style.visibility = '';
+  });
+  container.style.minWidth = width + 'px';
+}
+reservePowerActionsWidth();
+
 function applyStatus(status) {
   if (!status) return;
+  currentStatus = status;
   const running = status === 'running';
   const active = running || status === 'starting';
+  if (!active) uptimeSeconds = 0;
   const badge = document.getElementById('status-badge');
   if (badge) {
     badge.textContent = status;
@@ -187,10 +230,8 @@ function applyStatus(status) {
     topDot.className = 'topbar-server-dot topbar-server-dot--' + (running ? 'green' : pending ? 'yellow' : 'red');
     topServer.title = status;
   }
-  document.querySelectorAll('[data-power]').forEach((btn) => {
-    const show = !serverSuspended && (btn.dataset.power === 'start' ? !active : active);
-    btn.style.display = show ? 'inline-flex' : 'none';
-  });
+  setPowerButtons(active);
+  updateUptime();
 }
 
 async function powerAction(action) {
@@ -210,62 +251,11 @@ function confirmKill() {
   executePower('kill');
 }
 
-// Minecraft EULA prompt. Shown when the server logs that it needs the EULA
-// accepted. Accept flips eula.txt to true and restarts; cancel stops it.
-// The console replays recent log history on connect, so confirm against the
-// actual eula.txt before prompting — otherwise an old notice reopens the modal.
-let eulaPrompted = false;
-
-async function maybePromptEula() {
-  if (eulaPrompted) return;
-  eulaPrompted = true;
-  try {
-    const res = await fetch(`/server/${serverId}/eula`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-    const data = await res.json().catch(() => ({}));
-    if (data && data.accepted) return;
-  } catch {}
-  showEulaModal();
-}
-
-function showEulaModal() {
-  const el = document.getElementById('eula-modal');
-  if (!el) return;
-  el.classList.remove('closing');
-  requestAnimationFrame(() => el.classList.add('active'));
-}
-
-function closeEulaModal() {
-  const el = document.getElementById('eula-modal');
-  if (!el) return;
-  el.classList.add('closing');
-  setTimeout(() => {
-    el.classList.remove('active');
-    el.classList.remove('closing');
-  }, 300);
-}
-
-async function submitEula(action) {
-  closeEulaModal();
-  try {
-    const res = await fetch(`/server/${serverId}/eula`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify({ action }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (data.ok === false && window.showToast) {
-      window.showToast(data.error || window.t('server.console.eulaFailed'));
-    } else {
-      applyStatus(action === 'accept' ? 'starting' : 'offline');
-    }
-  } catch {}
-}
-
-function acceptEula() { submitEula('accept'); }
-function declineEula() { submitEula('decline'); }
+// The EULA prompt is owned by the shared nav partial so it can appear from any
+// server tab. The console only forwards the matching log line to it.
 
 async function executePower(action) {
-  if (action === 'start' || action === 'restart') eulaPrompted = false;
+  if ((action === 'start' || action === 'restart') && window.pyloxEula) window.pyloxEula.reset();
   const buttons = document.querySelectorAll('[data-power]');
   buttons.forEach((b) => { b.disabled = true; });
   const optimistic = action === 'stop' || action === 'kill' ? 'offline' : 'starting';
@@ -304,19 +294,33 @@ function formatUptime(s) {
   return parts.join(' ');
 }
 
+function uptimeActive() {
+  // A starting server is already running inside Docker; its startedAt timestamp
+  // is valid even before the egg prints its startup-done line.
+  return currentStatus === 'running' || currentStatus === 'starting';
+}
+
 function updateUptime() {
   const el = document.getElementById('uptime');
-  if (el) el.textContent = uptimeSeconds > 0 ? formatUptime(uptimeSeconds) : window.t('common.dash');
+  if (el) el.textContent = uptimeActive() ? formatUptime(uptimeSeconds) : window.t('common.dash');
 }
 updateUptime();
-setInterval(() => { if (uptimeSeconds > 0) { uptimeSeconds++; updateUptime(); } }, 1000);
+setInterval(() => {
+  if (uptimeActive()) { uptimeSeconds += 1; updateUptime(); }
+}, 1000);
 
 const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
 let ws = null;
 let wsReconnectTimer = null;
+let wsConnectedOnce = false;
 
 function connectWS() {
-  ws = new WebSocket(`${protocol}//${location.host}/ws/console?server=${serverUuid}`);
+  if (window.pyloxEula && typeof window.pyloxEula.useConsoleFeed === 'function') window.pyloxEula.useConsoleFeed();
+  // Only the first socket for this page gets the log history. Later reconnects
+  // keep the lines already on screen instead of replaying them.
+  const replay = wsConnectedOnce ? '0' : '1';
+  wsConnectedOnce = true;
+  ws = new WebSocket(`${protocol}//${location.host}/ws/console?server=${serverUuid}&replay=${replay}`);
   ws.onopen = () => { appendConsole(window.t('server.console.wsConnected')); };
   ws.onclose = () => {
     appendConsole(window.t('server.console.wsDisconnected'));
@@ -351,8 +355,15 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
+// npm/yarn progress output uses cursor-movement CSI codes (ESC[1G, ESC[0K,
+// ...). A scrollback log has no cursor to move, so dropping them avoids the
+// literal "[1G[0K" garbage. SGR colour codes are kept and rendered below.
+function stripConsoleControls(text) {
+  return String(text).replace(/\x1b\[[0-9;?]*[A-Za-z]/g, (seq) => (seq.endsWith('m') ? seq : ''));
+}
+
 function ansiToHtml(text) {
-  const parts = String(text).split(/\x1b\[([0-9;]*)m/);
+  const parts = stripConsoleControls(text).split(/\x1b\[([0-9;]*)m/);
   let html = '';
   let open = false;
   for (let i = 0; i < parts.length; i++) {
@@ -397,9 +408,13 @@ function formatConsoleLine(line) {
 function appendConsole(msg) {
   let html = '';
   String(msg).split('\n').forEach((line) => {
-    if (!line.trim()) return;
+    const plain = stripConsoleControls(line).replace(/\r/g, '').trim();
+    if (!plain) return;
+    // npm's spinner frames are cursor animations, not log messages. Showing
+    // every frame in scrollback just produces pages of "| / - \".
+    if (/^[|/\\-]$/.test(plain)) return;
     if (line.includes('You need to agree to the EULA in order to run the server')) {
-      maybePromptEula();
+      if (window.pyloxEula) window.pyloxEula.checkLine(line);
     }
     html += formatConsoleLine(line) + '\n';
   });
